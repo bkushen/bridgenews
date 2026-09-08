@@ -24,3 +24,26 @@ body {
 a { color: inherit; text-decoration: none; }
 img { display: block; }
 ::selection { background: #111318; color: #fff; }
+
+@keyframes liveTickerScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.live-ticker-track {
+  animation: liveTickerScroll 42s linear infinite;
+  will-change: transform;
+}
+
+.live-ticker:hover .live-ticker-track,
+.live-ticker:focus-within .live-ticker-track {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .live-ticker-track { animation-duration: 30s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ticker-track { animation: none; }
+}
