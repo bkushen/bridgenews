@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { stories as fallbackStories } from "@/lib/mock-data";
 
 export type StorySource = { name: string; url: string; publishedAt: string | null };
 export type StoryDetail = {
@@ -28,19 +27,12 @@ function relativeTime(value: string | null) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-function fallback(slug: string): StoryDetail | null {
-  const story = fallbackStories.find((item) => item.slug === slug);
-  if (!story) return null;
-  return { articleId: null, slug: story.slug, title: story.title, summary: story.summary, description: story.summary, imageUrl: null, category: story.category, source: story.source, sourceCount: story.sourceCount, regions: story.regions, published: story.published, sources: [{ name: story.source, url: "#", publishedAt: null }] };
-}
-
 export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return fallback(slug);
   try {
     const supabase = await createClient();
     const article = await supabase.from("articles").select("id,source_id,story_cluster_id,slug,title,description,ai_summary,image_url,original_url,published_at,discovered_at").eq("slug", slug).eq("status", "published").maybeSingle();
     if (article.error) throw article.error;
-    if (!article.data) return fallback(slug);
+    if (!article.data) return null;
     const a = article.data;
     const [sourceResult, regionLinks, categoryLinks] = await Promise.all([
       supabase.from("sources").select("id,name").eq("id", a.source_id).maybeSingle(),
@@ -79,6 +71,6 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
     };
   } catch (error) {
     console.error("BridgeNews story detail query failed.", error);
-    return fallback(slug);
+    return null;
   }
 }
