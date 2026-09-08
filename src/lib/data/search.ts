@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { stories as fallbackStories, type Story } from "@/lib/mock-data";
+import type { Story } from "@/lib/mock-data";
 
 export type SearchStory = Story & { articleId?: string; imageUrl?: string | null };
 
@@ -32,11 +32,6 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
   const q = query.trim();
   if (!q) return [];
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-    const needle = q.toLowerCase();
-    return fallbackStories.filter((story) => `${story.title} ${story.summary} ${story.category}`.toLowerCase().includes(needle)).slice(0, limit);
-  }
-
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("search_published_articles", {
@@ -47,8 +42,8 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
     const rows = (data ?? []) as SearchRpcRow[];
     if (!rows.length) return [];
 
-    const articleIds = rows.map((row: SearchRpcRow) => row.id);
-    const sourceIds = [...new Set(rows.map((row: SearchRpcRow) => row.source_id))];
+    const articleIds = rows.map((row) => row.id);
+    const sourceIds = [...new Set(rows.map((row) => row.source_id))];
     const [sourcesResult, categoryLinks] = await Promise.all([
       supabase.from("sources").select("id,name").in("id", sourceIds),
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
@@ -70,7 +65,7 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
       if (name && !categoryByArticle.has(link.article_id)) categoryByArticle.set(link.article_id, name);
     }
 
-    return rows.map((row: SearchRpcRow) => ({
+    return rows.map((row) => ({
       articleId: row.id,
       slug: row.slug,
       title: row.title,
