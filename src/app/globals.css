@@ -40,10 +40,27 @@ img { display: block; }
   animation-play-state: paused;
 }
 
+@keyframes sourceRailScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.source-rail-track {
+  animation: sourceRailScroll 58s linear infinite;
+  will-change: transform;
+}
+
+.source-rail-mask:hover .source-rail-track,
+.source-rail-mask:focus-within .source-rail-track {
+  animation-play-state: paused;
+}
+
 @media (max-width: 640px) {
   .live-ticker-track { animation-duration: 30s; }
+  .source-rail-track { animation-duration: 42s; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live-ticker-track { animation: none; }
+  .live-ticker-track,
+  .source-rail-track { animation: none; }
 }
