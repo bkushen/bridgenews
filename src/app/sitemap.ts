@@ -5,8 +5,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://bridgenews-live-bk
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
-    "", "/latest", "/trending", "/search", "/categories", "/region/sri-lanka", "/region/australia", "/region/international",
-  ].map((path) => ({ url: `${BASE_URL}${path}`, changeFrequency: path === "" ? "hourly" : "daily", priority: path === "" ? 1 : 0.8 }));
+    "", "/latest", "/trending", "/search", "/categories",
+    "/region/sri-lanka", "/region/australia", "/region/international",
+    "/about", "/contact", "/privacy", "/terms",
+  ].map((path) => ({
+    url: `${BASE_URL}${path}`,
+    changeFrequency: path === "" ? "hourly" : "daily",
+    priority: path === "" ? 1 : path.startsWith("/region/") || ["/latest", "/categories"].includes(path) ? 0.8 : 0.6,
+  }));
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return staticRoutes;
   try {
