@@ -16,7 +16,14 @@ const STOP_WORDS = new Set([
 ]);
 
 function tokens(title: string) {
-  return [...new Set(title.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !STOP_WORDS.has(word)))];
+  return [...new Set(
+    title
+      .normalize("NFKC")
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(/\s+/u)
+      .filter((word) => word.length > 1 && !STOP_WORDS.has(word))
+  )];
 }
 
 function similarity(a: string, b: string) {
