@@ -8,10 +8,7 @@ type StoryQueryOptions = {
 };
 
 function hasSupabaseConfig() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  );
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 }
 
 function relativeTime(value: string | null) {
@@ -35,10 +32,9 @@ export async function getStories({ region, limit = 24, trending = false }: Story
   try {
     const supabase = await createClient();
     const fetchLimit = Math.max(limit * 3, 30);
-
     const { data: articles, error: articleError } = await supabase
       .from("articles")
-      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,published_at,discovered_at")
+      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at")
       .eq("status", "published")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchLimit);
@@ -54,9 +50,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       supabase.from("article_regions").select("article_id,region_id").in("article_id", articleIds),
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
       supabase.from("sources").select("id,name").in("id", sourceIds),
-      clusterIds.length
-        ? supabase.from("story_clusters").select("id,article_count,trending_score").in("id", clusterIds)
-        : Promise.resolve({ data: [], error: null }),
+      clusterIds.length ? supabase.from("story_clusters").select("id,article_count,trending_score").in("id", clusterIds) : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (regionsResult.error) throw regionsResult.error;
@@ -66,7 +60,6 @@ export async function getStories({ region, limit = 24, trending = false }: Story
 
     const regionIds = [...new Set((regionsResult.data ?? []).map((row) => row.region_id))];
     const categoryIds = [...new Set((categoriesResult.data ?? []).map((row) => row.category_id))];
-
     const [regionMetaResult, categoryMetaResult] = await Promise.all([
       regionIds.length ? supabase.from("regions").select("id,slug").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
       categoryIds.length ? supabase.from("categories").select("id,name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
@@ -104,13 +97,13 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         regions: regionsByArticle.get(article.id) ?? [],
         category: categoryByArticle.get(article.id) || "News",
         sourceCount: Number(cluster?.article_count ?? 1),
+        imageUrl: article.image_url,
         trendingScore: Number(cluster?.trending_score ?? 0),
       };
     });
 
     if (region) mapped = mapped.filter((story) => story.regions.includes(region));
     if (trending) mapped.sort((a, b) => b.trendingScore - a.trendingScore);
-
     return mapped.slice(0, limit).map(({ trendingScore: _trendingScore, ...story }) => story);
   } catch (error) {
     console.error("BridgeNews live story query failed; falling back to demo data.", error);
