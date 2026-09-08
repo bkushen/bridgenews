@@ -14,7 +14,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === "" ? 1 : path.startsWith("/region/") || ["/latest", "/categories"].includes(path) ? 0.8 : 0.6,
   }));
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return staticRoutes;
   try {
     const supabase = await createClient();
     const { data } = await supabase.from("articles").select("slug,updated_at,published_at").eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(1000);
