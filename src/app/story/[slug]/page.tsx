@@ -1,6 +1,57 @@
 import { notFound } from "next/navigation";
-import { stories } from "@/lib/mock-data";
+import { getStoryBySlug } from "@/lib/data/story-detail";
+
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
- const { slug } = await params; const story = stories.find(s=>s.slug===slug); if(!story) notFound();
- return <main className="mx-auto max-w-3xl px-5 py-10"><div className="text-sm font-semibold uppercase tracking-wide text-gray-500">{story.category} • {story.regions.join(" + ")}</div><h1 className="mt-3 text-4xl font-black leading-tight md:text-5xl">{story.title}</h1><p className="mt-4 text-gray-500">Updated {story.published} • {story.sourceCount} sources reporting</p><section className="mt-8 rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-xs font-bold uppercase tracking-widest text-gray-500">AI Summary</p><p className="mt-3 text-lg leading-8">{story.summary}</p></section><section className="mt-6 rounded-2xl border border-[var(--border)] bg-white p-6"><h2 className="text-xl font-bold">Sources reporting this story</h2><div className="mt-4 space-y-3">{Array.from({length: Math.min(story.sourceCount,4)}).map((_,i)=><div key={i} className="flex items-center justify-between border-t border-gray-100 pt-3"><span>Demo Publisher {i+1}</span><span className="text-sm text-gray-500">Read original →</span></div>)}</div></section></main>;
+  const { slug } = await params;
+  const story = await getStoryBySlug(slug);
+  if (!story) notFound();
+
+  return (
+    <main className="mx-auto max-w-5xl px-5 py-10">
+      <article>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
+          <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">{story.category}</span>
+          {story.regions.map((region) => <span key={region}>{region}</span>)}
+        </div>
+        <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">{story.title}</h1>
+        <div className="mt-4 flex flex-wrap gap-2 text-sm text-gray-500">
+          <span className="font-semibold text-gray-700">{story.source}</span>
+          <span>•</span>
+          <span>{story.published}</span>
+          {story.sourceCount > 1 ? <><span>•</span><span>{story.sourceCount} sources reporting</span></> : null}
+        </div>
+
+        {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[560px] w-full rounded-3xl object-cover" /> : null}
+
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">BridgeNews summary</p>
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500">Quick read</span>
+          </div>
+          <p className="mt-4 text-lg leading-8 text-gray-800">{story.summary}</p>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-4">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Original reporting</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight">Sources covering this story</h2>
+            </div>
+            <span className="text-sm font-semibold text-gray-500">{story.sources.length} source{story.sources.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {story.sources.map((source, index) => (
+              <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
+                <div>
+                  <p className="font-bold text-gray-900">{source.name}</p>
+                  {source.publishedAt ? <p className="mt-1 text-xs text-gray-500">Publisher timestamp available</p> : null}
+                </div>
+                <span className="shrink-0 text-sm font-bold">Read original →</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      </article>
+    </main>
+  );
 }
