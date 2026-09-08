@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 import { StoryCard } from "@/components/story-card";
-import { regionMeta, stories, type RegionSlug } from "@/lib/mock-data";
+import { getStories } from "@/lib/data/stories";
+import { regionMeta, type RegionSlug } from "@/lib/mock-data";
 
 export default async function RegionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!(slug in regionMeta)) notFound();
-  const region = regionMeta[slug as RegionSlug];
-  const filtered = stories.filter((story) => story.regions.includes(slug as RegionSlug));
+
+  const regionSlug = slug as RegionSlug;
+  const region = regionMeta[regionSlug];
+  const stories = await getStories({ region: regionSlug, limit: 40 });
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -15,7 +18,11 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
         <h1 className="mt-3 text-4xl font-black">{region.label}</h1>
         <p className="mt-3 max-w-2xl leading-7 text-gray-600">{region.description}</p>
       </div>
-      <div className="grid gap-5 md:grid-cols-2">{filtered.map((story) => <StoryCard key={story.slug} story={story} />)}</div>
+      {stories.length ? (
+        <div className="grid gap-5 md:grid-cols-2">{stories.map((story) => <StoryCard key={story.slug} story={story} />)}</div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-[var(--border)] p-8 text-gray-600">No published stories for {region.label} yet.</p>
+      )}
     </main>
   );
 }
