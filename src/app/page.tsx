@@ -56,6 +56,7 @@ export default async function Home() {
         <Link href="/region/sri-lanka" className="rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-gray-200">🇱🇰 Sri Lanka</Link>
         <Link href="/region/australia" className="rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-gray-200">🇦🇺 Australia</Link>
         <Link href="/region/international" className="rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-gray-200">🌍 International</Link>
+        <Link href="/categories" className="rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-gray-200">Categories</Link>
         <Link href="/trending" className="rounded-full bg-gray-950 px-3 py-2 text-white">Trending now</Link>
       </section>
 
@@ -78,9 +79,9 @@ export default async function Home() {
         <aside>
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Why BridgeNews</p>
-            <h2 className="mt-2 text-xl font-black">One story. Multiple perspectives.</h2>
-            <p className="mt-3 text-sm leading-6 text-gray-600">BridgeNews is built to combine duplicate coverage, keep publisher attribution, and make Sri Lankan, Australian and international reporting easier to follow.</p>
-            <Link href="/topics" className="mt-5 inline-flex rounded-full bg-gray-950 px-4 py-2 text-xs font-bold text-white">Browse topics</Link>
+            <h2 className="mt-2 text-xl font-black">Fast news, clear attribution.</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">BridgeNews brings Sri Lankan, Australian and international reporting into one place while keeping every publisher clearly attributed and linking readers back to original reporting.</p>
+            <Link href="/categories" className="mt-5 inline-flex rounded-full bg-gray-950 px-4 py-2 text-xs font-bold text-white">Browse categories</Link>
           </div>
           <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-950 p-5 text-white">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Fast scan</p>

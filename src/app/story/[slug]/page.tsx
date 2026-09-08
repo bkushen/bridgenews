@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getStoryBySlug } from "@/lib/data/story-detail";
+import { saveBookmark } from "@/app/saved/actions";
 
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -14,38 +15,38 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
           {story.regions.map((region) => <span key={region}>{region}</span>)}
         </div>
         <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">{story.title}</h1>
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-gray-500">
-          <span className="font-semibold text-gray-700">{story.source}</span>
-          <span>•</span>
-          <span>{story.published}</span>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+          <span className="font-semibold text-gray-700">{story.source}</span><span>•</span><span>{story.published}</span>
           {story.sourceCount > 1 ? <><span>•</span><span>{story.sourceCount} sources reporting</span></> : null}
         </div>
+
+        {story.articleId ? (
+          <form action={saveBookmark} className="mt-5">
+            <input type="hidden" name="articleId" value={story.articleId} />
+            <input type="hidden" name="returnTo" value={`/story/${story.slug}`} />
+            <button className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">☆ Save story</button>
+          </form>
+        ) : null}
 
         {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[560px] w-full rounded-3xl object-cover" /> : null}
 
         <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">BridgeNews summary</p>
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500">Quick read</span>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Quick summary</p>
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500">From publisher feed</span>
           </div>
           <p className="mt-4 text-lg leading-8 text-gray-800">{story.summary}</p>
         </section>
 
         <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-4">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Original reporting</p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight">Sources covering this story</h2>
-            </div>
+            <div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Original reporting</p><h2 className="mt-1 text-2xl font-black tracking-tight">Sources covering this story</h2></div>
             <span className="text-sm font-semibold text-gray-500">{story.sources.length} source{story.sources.length === 1 ? "" : "s"}</span>
           </div>
           <div className="divide-y divide-gray-100">
             {story.sources.map((source, index) => (
               <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
-                <div>
-                  <p className="font-bold text-gray-900">{source.name}</p>
-                  {source.publishedAt ? <p className="mt-1 text-xs text-gray-500">Publisher timestamp available</p> : null}
-                </div>
+                <div><p className="font-bold text-gray-900">{source.name}</p>{source.publishedAt ? <p className="mt-1 text-xs text-gray-500">Publisher timestamp available</p> : null}</div>
                 <span className="shrink-0 text-sm font-bold">Read original →</span>
               </a>
             ))}

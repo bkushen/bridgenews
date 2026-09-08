@@ -11,7 +11,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <span className="font-black">Admin</span>
           <Link href="/admin">Dashboard</Link>
           <Link href="/admin/sources">Sources</Link>
-          <Link href="/admin/ai">AI operations</Link>
           {session.preview ? <span className="ml-auto rounded-full bg-amber-400/20 px-3 py-1 font-bold text-amber-200">Preview mode · Supabase not connected</span> : <form action={logout} className="ml-auto"><button className="font-bold">Sign out</button></form>}
         </div>
       </div>
