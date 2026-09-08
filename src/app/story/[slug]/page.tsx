@@ -1,0 +1,6 @@
+import { notFound } from "next/navigation";
+import { stories } from "@/lib/mock-data";
+export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
+ const { slug } = await params; const story = stories.find(s=>s.slug===slug); if(!story) notFound();
+ return <main className="mx-auto max-w-3xl px-5 py-10"><div className="text-sm font-semibold uppercase tracking-wide text-gray-500">{story.category} • {story.regions.join(" + ")}</div><h1 className="mt-3 text-4xl font-black leading-tight md:text-5xl">{story.title}</h1><p className="mt-4 text-gray-500">Updated {story.published} • {story.sourceCount} sources reporting</p><section className="mt-8 rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-xs font-bold uppercase tracking-widest text-gray-500">AI Summary</p><p className="mt-3 text-lg leading-8">{story.summary}</p></section><section className="mt-6 rounded-2xl border border-[var(--border)] bg-white p-6"><h2 className="text-xl font-bold">Sources reporting this story</h2><div className="mt-4 space-y-3">{Array.from({length: Math.min(story.sourceCount,4)}).map((_,i)=><div key={i} className="flex items-center justify-between border-t border-gray-100 pt-3"><span>Demo Publisher {i+1}</span><span className="text-sm text-gray-500">Read original →</span></div>)}</div></section></main>;
+}
