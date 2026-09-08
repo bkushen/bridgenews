@@ -3,6 +3,7 @@ import { getStories } from "@/lib/data/stories";
 import { getCategories } from "@/lib/data/categories";
 import { getExchangeStrip, getHomepageWeather, formatCityTime } from "@/lib/data/home-widgets";
 import { groupStoriesIntoTopics, rankTrendingTopics, type TopicGroup } from "@/lib/data/topic-groups";
+import { LiveNewsTicker } from "@/components/live-news-ticker";
 import type { Story } from "@/lib/mock-data";
 
 type StoryWithImage = Story & { imageUrl?: string | null };
@@ -118,6 +119,11 @@ export default async function Home() {
   const multiSourceTopics = latestTopics.filter((topic) => topic.sourceCount > 1).length;
   const colombo = weather[0];
   const melbourne = weather[1];
+  const tickerItems = trendingTopics.slice(0, 8).map((topic) => ({
+    key: topic.key,
+    title: topic.lead.title,
+    href: `/story/${topic.lead.slug}`,
+  }));
 
   return (
     <main className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 md:py-6">
@@ -131,14 +137,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mt-3 overflow-hidden rounded-2xl border border-red-200 bg-red-50">
-        <div className="flex items-stretch">
-          <div className="shrink-0 bg-red-600 px-4 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-white">Live</div>
-          <div className="flex min-w-0 items-center gap-8 overflow-hidden px-4 text-sm font-bold text-gray-900">
-            {trendingTopics.slice(0, 5).map((topic) => <Link key={topic.key} href={`/story/${topic.lead.slug}`} className="shrink-0 hover:underline">{topic.lead.title}</Link>)}
-          </div>
-        </div>
-      </section>
+      <LiveNewsTicker items={tickerItems} />
 
       <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_330px]">
         <div className="grid gap-3 lg:grid-cols-[1.55fr_0.85fr]">
