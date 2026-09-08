@@ -1,15 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { stories as fallbackStories, type RegionSlug, type Story } from "@/lib/mock-data";
+import type { RegionSlug, Story } from "@/lib/mock-data";
 
 type StoryQueryOptions = {
   region?: RegionSlug;
   limit?: number;
   trending?: boolean;
 };
-
-function hasSupabaseConfig() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-}
 
 function relativeTime(value: string | null) {
   if (!value) return "Recently";
@@ -24,11 +20,6 @@ function relativeTime(value: string | null) {
 }
 
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
-  if (!hasSupabaseConfig()) {
-    const demo = region ? fallbackStories.filter((story) => story.regions.includes(region)) : fallbackStories;
-    return demo.slice(0, limit);
-  }
-
   try {
     const supabase = await createClient();
     const fetchLimit = Math.max(limit * 3, 30);
@@ -106,8 +97,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
     if (trending) mapped.sort((a, b) => b.trendingScore - a.trendingScore);
     return mapped.slice(0, limit).map(({ trendingScore: _trendingScore, ...story }) => story);
   } catch (error) {
-    console.error("BridgeNews live story query failed; falling back to demo data.", error);
-    const demo = region ? fallbackStories.filter((story) => story.regions.includes(region)) : fallbackStories;
-    return demo.slice(0, limit);
+    console.error("BridgeNews live story query failed.", error);
+    return [];
   }
 }
