@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { StoryCard } from "@/components/story-card";
-import { regionMeta, stories } from "@/lib/mock-data";
+import { getStories } from "@/lib/data/stories";
+import { regionMeta } from "@/lib/mock-data";
 
-export default function Home() {
+export default async function Home() {
+  const stories = await getStories({ limit: 8, trending: true });
+
   return (
     <main className="mx-auto max-w-7xl px-5 py-10">
       <section className="rounded-3xl bg-black px-7 py-12 text-white md:px-12">
@@ -24,12 +27,16 @@ export default function Home() {
       <section>
         <div className="mb-5 flex items-end justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Live concept feed</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Live feed</p>
             <h2 className="text-3xl font-black">Top stories</h2>
           </div>
           <Link href="/latest" className="text-sm font-semibold">View latest →</Link>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">{stories.map((story) => <StoryCard key={story.slug} story={story} />)}</div>
+        {stories.length ? (
+          <div className="grid gap-5 md:grid-cols-2">{stories.map((story) => <StoryCard key={story.slug} story={story} />)}</div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[var(--border)] p-8 text-gray-600">No published stories yet. Add a source in Admin and run the ingestion pipeline.</div>
+        )}
       </section>
     </main>
   );
