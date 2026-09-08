@@ -1,10 +1,24 @@
 import Link from "next/link";
 import { getStories } from "@/lib/data/stories";
 import { getCategories } from "@/lib/data/categories";
+import { getExchangeStrip, getHomepageWeather, formatCityTime } from "@/lib/data/home-widgets";
 import { groupStoriesIntoTopics, rankTrendingTopics, type TopicGroup } from "@/lib/data/topic-groups";
 import type { Story } from "@/lib/mock-data";
 
 type StoryWithImage = Story & { imageUrl?: string | null };
+
+const SOURCE_LOGOS = [
+  ["Ada Derana", "adaderana.lk"],
+  ["Newsfirst", "newsfirst.lk"],
+  ["Daily Mirror", "dailymirror.lk"],
+  ["Daily FT", "ft.lk"],
+  ["The Island", "island.lk"],
+  ["Newswire", "newswire.lk"],
+  ["EconomyNext", "economynext.com"],
+  ["Lankadeepa", "lankadeepa.lk"],
+  ["ITN", "itnnews.lk"],
+  ["ReadMe", "readme.lk"],
+] as const;
 
 function SectionTitle({ eyebrow, title, href }: { eyebrow: string; title: string; href?: string }) {
   return (
@@ -83,12 +97,14 @@ function StatWidget({ label, value, sub }: { label: string; value: string | numb
 }
 
 export default async function Home() {
-  const [allLatest, sriLanka, australia, international, categories] = await Promise.all([
+  const [allLatest, sriLanka, australia, international, categories, weather, rates] = await Promise.all([
     getStories({ limit: 100 }),
     getStories({ region: "sri-lanka", limit: 10 }),
     getStories({ region: "australia", limit: 8 }),
     getStories({ region: "international", limit: 8 }),
     getCategories(),
+    getHomepageWeather(),
+    getExchangeStrip(),
   ]);
 
   const latestTopics = groupStoriesIntoTopics(allLatest, 50);
@@ -97,12 +113,25 @@ export default async function Home() {
   const heroStories = (sriLanka.length ? sriLanka : allLatest).slice(0, 5) as StoryWithImage[];
   const inNews = allLatest.slice(0, 7) as StoryWithImage[];
   const feed = latestTopics.slice(0, 14);
+  const photoStories = allLatest.filter((story) => (story as StoryWithImage).imageUrl).slice(0, 10) as StoryWithImage[];
   const sourceCount = new Set(allLatest.map((story) => story.source)).size;
   const multiSourceTopics = latestTopics.filter((topic) => topic.sourceCount > 1).length;
+  const colombo = weather[0];
+  const melbourne = weather[1];
 
   return (
     <main className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 md:py-6">
-      <section className="overflow-hidden rounded-2xl border border-red-200 bg-red-50">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-950 text-white shadow-sm">
+        <div className="flex flex-wrap items-center divide-x divide-white/10">
+          <div className="bg-red-600 px-4 py-3 text-[11px] font-black uppercase tracking-[0.15em]">Markets & live</div>
+          <div className="px-4 py-3 text-xs font-bold">AUD/LKR <span className="ml-1 text-emerald-400">{rates.audToLkr?.toFixed(2) ?? "—"}</span></div>
+          <div className="px-4 py-3 text-xs font-bold">USD/LKR <span className="ml-1 text-emerald-400">{rates.usdToLkr?.toFixed(2) ?? "—"}</span></div>
+          <div className="px-4 py-3 text-xs font-bold">AUD/USD <span className="ml-1 text-emerald-400">{rates.audToUsd?.toFixed(4) ?? "—"}</span></div>
+          <div className="ml-auto hidden px-4 py-3 text-[10px] font-semibold text-gray-400 lg:block">Rates updated daily</div>
+        </div>
+      </section>
+
+      <section className="mt-3 overflow-hidden rounded-2xl border border-red-200 bg-red-50">
         <div className="flex items-stretch">
           <div className="shrink-0 bg-red-600 px-4 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-white">Live</div>
           <div className="flex min-w-0 items-center gap-8 overflow-hidden px-4 text-sm font-bold text-gray-900">
@@ -119,12 +148,24 @@ export default async function Home() {
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-600">Fast scan</p><h2 className="text-xl font-black">In the News</h2></div>
-            <span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-600">LIVE</span>
+        <aside className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {[colombo, melbourne].map((item) => (
+              <div key={item.city} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Weather</p><h3 className="mt-1 font-black">{item.city}</h3></div><span className="text-2xl">{item.emoji}</span></div>
+                <p className="mt-3 text-3xl font-black">{item.temperature != null ? `${Math.round(item.temperature)}°` : "—"}</p>
+                <p className="mt-1 text-[11px] font-semibold text-gray-500">H {item.high != null ? Math.round(item.high) : "—"}° · L {item.low != null ? Math.round(item.low) : "—"}°</p>
+                <p className="mt-2 text-[10px] text-gray-400">{item.city === "Colombo" ? formatCityTime("Asia/Colombo") : formatCityTime("Australia/Melbourne")}</p>
+              </div>
+            ))}
           </div>
-          <div>{inNews.map((story) => <MiniHeadline key={story.slug} story={story} />)}</div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+              <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-600">Fast scan</p><h2 className="text-xl font-black">In the News</h2></div>
+              <span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-600">LIVE</span>
+            </div>
+            <div>{inNews.slice(0, 5).map((story) => <MiniHeadline key={story.slug} story={story} />)}</div>
+          </div>
         </aside>
       </section>
 
@@ -134,6 +175,33 @@ export default async function Home() {
         <StatWidget label="Topics" value={latestTopics.length} sub="grouped story topics" />
         <StatWidget label="Multi-source" value={multiSourceTopics} sub="topics with cross-source coverage" />
       </section>
+
+      <section className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Publishers</p><p className="text-sm font-black">Sources across Sri Lanka</p></div>
+        <div className="flex gap-3 overflow-x-auto px-4 py-4">
+          {SOURCE_LOGOS.map(([name, domain]) => (
+            <div key={name} className="flex min-w-[150px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3">
+              <img src={`https://${domain}/favicon.ico`} alt="" className="h-8 w-8 rounded-lg bg-white object-contain" />
+              <span className="text-xs font-black text-gray-800">{name}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {photoStories.length ? (
+        <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <SectionTitle eyebrow="Visual scan" title="News in Photos" />
+          <div className="mt-4 flex snap-x gap-3 overflow-x-auto pb-2">
+            {photoStories.map((story) => (
+              <Link key={story.slug} href={`/story/${story.slug}`} className="group relative min-h-[220px] min-w-[280px] snap-start overflow-hidden rounded-2xl bg-gray-900 sm:min-w-[340px]">
+                <img src={story.imageUrl ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4 text-white"><p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{story.source}</p><h3 className="mt-1 line-clamp-2 text-lg font-black leading-tight">{story.title}</h3></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -152,7 +220,7 @@ export default async function Home() {
 
         <aside className="space-y-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <SectionTitle eyebrow="Across publishers" title="Top Stories" href="/trending" />
+            <SectionTitle eyebrow="Across publishers" title="Popular Now" href="/trending" />
             <div className="mt-2 divide-y divide-gray-100">
               {trendingTopics.slice(0, 7).map((topic, index) => (
                 <Link key={topic.key} href={`/story/${topic.lead.slug}`} className="flex gap-3 py-3">
@@ -181,6 +249,10 @@ export default async function Home() {
               <Link href="/search" className="rounded-xl bg-gray-100 px-3 py-3">Search</Link>
               <Link href="/saved" className="rounded-xl bg-gray-100 px-3 py-3">Saved</Link>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-[10px] leading-5 text-gray-500">
+            Weather data: Open-Meteo. Currency rates: ExchangeRate-API open access. Utility data are cached to reduce external requests.
           </div>
         </aside>
       </section>
