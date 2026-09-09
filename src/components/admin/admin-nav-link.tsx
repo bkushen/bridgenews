@@ -9,16 +9,25 @@ export function AdminNavLink({ href, label, icon, mobile = false }: { href: stri
 
   if (mobile) {
     return (
-      <Link href={href} className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${active ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
-        <span>{icon}</span>{label}
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${active ? "bg-indigo-600 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
+      >
+        <span className="text-[11px]">{icon}</span>{label}
       </Link>
     );
   }
 
   return (
-    <Link href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${active ? "bg-gray-950 text-white" : "text-gray-700 hover:bg-gray-100 hover:text-gray-950"}`}>
-      <span className={`grid h-7 w-7 place-items-center rounded-lg text-xs ${active ? "bg-white/15 text-white" : "bg-gray-100 text-gray-600"}`}>{icon}</span>
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${active ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10" : "text-slate-300 hover:bg-white/7 hover:text-white"}`}
+    >
+      <span className={`grid h-8 w-8 place-items-center rounded-lg text-xs transition ${active ? "bg-indigo-500 text-white shadow-sm" : "bg-white/6 text-slate-400 group-hover:bg-white/10 group-hover:text-white"}`}>{icon}</span>
       <span>{label}</span>
+      {active ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-300" /> : null}
     </Link>
   );
 }
