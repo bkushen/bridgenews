@@ -54,15 +54,30 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 
 /* Admin visual system */
 .admin-theme-shell {
-  --admin-bg: #f6f8fb;
+  --admin-bg: #f7f8fa;
   --admin-panel: #ffffff;
+  --admin-panel-soft: #f9fafb;
   --admin-border: #e5e7eb;
-  --admin-text: #0f172a;
-  --admin-muted: #64748b;
+  --admin-border-strong: #d1d5db;
+  --admin-text: #111827;
+  --admin-text-soft: #374151;
+  --admin-muted: #6b7280;
   --admin-accent: #4f46e5;
+  --admin-accent-hover: #4338ca;
+  --admin-success: #047857;
+  --admin-success-bg: #ecfdf5;
+  --admin-warning: #b45309;
+  --admin-warning-bg: #fffbeb;
+  --admin-danger: #be123c;
+  --admin-danger-bg: #fff1f2;
+  --admin-info: #1d4ed8;
+  --admin-info-bg: #eff6ff;
   background: var(--admin-bg) !important;
   color: var(--admin-text) !important;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .admin-theme-shell *,
@@ -86,15 +101,20 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 .admin-theme-shell input,
 .admin-theme-shell select,
 .admin-theme-shell textarea {
-  border-color: #dbe1e8 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+  border-color: var(--admin-border-strong) !important;
+  background: #ffffff;
+  color: var(--admin-text);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03);
 }
+
+.admin-theme-shell input::placeholder,
+.admin-theme-shell textarea::placeholder { color: #9ca3af; }
 
 .admin-theme-shell input:focus,
 .admin-theme-shell select:focus,
 .admin-theme-shell textarea:focus {
   border-color: #818cf8 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10) !important;
 }
 
 .admin-theme-shell article,
@@ -104,60 +124,92 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 .admin-theme-shell form.rounded-2xl.border,
 .admin-theme-shell div.rounded-xl.border,
 .admin-theme-shell form.rounded-xl.border {
-  border-color: #e5e7eb !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025), 0 6px 18px rgba(15, 23, 42, 0.025);
+  border-color: var(--admin-border) !important;
+  background-color: var(--admin-panel);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.025), 0 8px 24px rgba(17, 24, 39, 0.025);
 }
 
 .admin-theme-shell table { border-collapse: collapse; }
-.admin-theme-shell thead { background: #f8fafc !important; }
+.admin-theme-shell thead { background: var(--admin-panel-soft) !important; }
 .admin-theme-shell th {
-  color: #64748b !important;
+  color: var(--admin-muted) !important;
   font-size: 10px !important;
   font-weight: 800 !important;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
 }
-.admin-theme-shell tbody tr:hover { background: #fafbfc; }
+.admin-theme-shell td { color: var(--admin-text-soft); }
+.admin-theme-shell tbody tr:hover { background: #fafafa; }
 
 .admin-sidebar { box-shadow: none !important; }
-.admin-sidebar nav { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.admin-sidebar nav { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
 .admin-content { min-height: 100vh; }
 
 .admin-theme-toggle {
-  border-color: #e2e8f0 !important;
+  border-color: var(--admin-border) !important;
   background: #ffffff !important;
-  color: #475569 !important;
+  color: #4b5563 !important;
   box-shadow: none !important;
 }
 
-.admin-theme-toggle:hover { border-color: #c7d2fe !important; background: #f8fafc !important; }
-.admin-nav-item { min-height: 40px; }
-.admin-nav-item.is-active { box-shadow: inset 0 0 0 1px #c7d2fe !important; }
-.admin-mobile-nav-item.is-active { box-shadow: none !important; }
-.admin-signout:hover { color: #be123c !important; }
-
-.admin-theme-shell main {
-  width: 100%;
+.admin-theme-toggle:hover { border-color: #c7d2fe !important; background: #f9fafb !important; }
+.admin-nav-item { min-height: 40px; color: #4b5563; }
+.admin-nav-item:hover { background: #f3f4f6 !important; color: #111827 !important; }
+.admin-nav-item.is-active {
+  background: #eef2ff !important;
+  color: #3730a3 !important;
+  box-shadow: inset 0 0 0 1px #c7d2fe !important;
 }
+.admin-nav-item.is-active .admin-nav-icon { background: #4f46e5 !important; color: #ffffff !important; }
+.admin-mobile-nav-item.is-active { background: #4f46e5 !important; color: #ffffff !important; box-shadow: none !important; }
+.admin-signout:hover { color: var(--admin-danger) !important; background: var(--admin-danger-bg) !important; }
 
-.admin-theme-shell main > h1,
-.admin-theme-shell main > div:first-child h1 {
+.admin-theme-shell main { width: 100%; }
+.admin-theme-shell h1,
+.admin-theme-shell h2,
+.admin-theme-shell h3 {
+  color: var(--admin-text);
+  font-weight: 750;
   letter-spacing: -0.025em;
 }
+
+.admin-theme-shell p { line-height: 1.55; }
 
 .admin-theme-shell .shadow-sm,
 .admin-theme-shell .shadow-lg,
 .admin-theme-shell .shadow-xl,
-.admin-theme-shell .shadow-2xl { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important; }
+.admin-theme-shell .shadow-2xl { box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03) !important; }
 
 .admin-theme-shell button:not(:disabled) { cursor: pointer; }
 .admin-theme-shell summary { cursor: pointer; }
+
+/* Normalize semantic status colors used throughout admin */
+.admin-theme-shell .bg-emerald-50 { background-color: var(--admin-success-bg) !important; }
+.admin-theme-shell .text-emerald-700,
+.admin-theme-shell .text-emerald-600 { color: var(--admin-success) !important; }
+.admin-theme-shell .bg-amber-50 { background-color: var(--admin-warning-bg) !important; }
+.admin-theme-shell .text-amber-700,
+.admin-theme-shell .text-amber-800,
+.admin-theme-shell .text-amber-900 { color: var(--admin-warning) !important; }
+.admin-theme-shell .bg-red-50,
+.admin-theme-shell .bg-rose-50 { background-color: var(--admin-danger-bg) !important; }
+.admin-theme-shell .text-red-600,
+.admin-theme-shell .text-red-700,
+.admin-theme-shell .text-rose-600,
+.admin-theme-shell .text-rose-700 { color: var(--admin-danger) !important; }
+.admin-theme-shell .bg-blue-50,
+.admin-theme-shell .bg-indigo-50 { background-color: var(--admin-info-bg) !important; }
+.admin-theme-shell .text-blue-700,
+.admin-theme-shell .text-indigo-700 { color: var(--admin-info) !important; }
 
 /* Dark admin theme */
 [data-admin-theme="dark"] {
   --admin-bg: #0b0f17;
   --admin-panel: #101720;
+  --admin-panel-soft: #0f172a;
   --admin-border: #263244;
+  --admin-border-strong: #334155;
   --admin-text: #f8fafc;
+  --admin-text-soft: #cbd5e1;
   --admin-muted: #94a3b8;
   background: var(--admin-bg) !important;
   color: var(--admin-text) !important;
@@ -207,6 +259,6 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 [data-admin-theme="dark"] div.rounded-2xl.border,
 [data-admin-theme="dark"] form.rounded-2xl.border,
 [data-admin-theme="dark"] div.rounded-xl.border,
-[data-admin-theme="dark"] form.rounded-xl.border { border-color: #263244 !important; box-shadow: none !important; }
+[data-admin-theme="dark"] form.rounded-xl.border { border-color: #263244 !important; box-shadow: none !important; background-color: #111827 !important; }
 [data-admin-theme="dark"] thead { background: #0f172a !important; }
 [data-admin-theme="dark"] tbody tr:hover { background: rgba(255,255,255,.025); }
