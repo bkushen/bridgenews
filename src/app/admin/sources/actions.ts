@@ -121,6 +121,7 @@ export async function testSource(formData: FormData) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
+  let result: { ok: true; status: number } | { ok: false; message: string; status?: number };
 
   try {
     const response = await fetch(source.feed_url, {
@@ -134,24 +135,28 @@ export async function testSource(formData: FormData) {
     });
 
     if (!response.ok) {
-      await audit(admin, session.user?.id ?? null, "test_failed", id, { status: response.status });
-      redirect(`/admin/sources?tested=failed&source=${encodeURIComponent(source.name)}&error=${encodeURIComponent(`Feed returned HTTP ${response.status}`)}`);
+      result = { ok: false, status: response.status, message: `Feed returned HTTP ${response.status}` };
+    } else {
+      const body = (await response.text()).slice(0, 250_000);
+      const looksLikeFeed = /<(rss|feed|rdf:RDF)(\s|>)/i.test(body) && /<(item|entry)(\s|>)/i.test(body);
+      result = looksLikeFeed
+        ? { ok: true, status: response.status }
+        : { ok: false, status: response.status, message: "URL responded, but it does not look like an RSS or Atom feed" };
     }
-
-    const body = (await response.text()).slice(0, 250_000);
-    const looksLikeFeed = /<(rss|feed|rdf:RDF)(\s|>)/i.test(body) && /<(item|entry)(\s|>)/i.test(body);
-    if (!looksLikeFeed) {
-      await audit(admin, session.user?.id ?? null, "test_failed", id, { reason: "invalid_feed_shape" });
-      redirect(`/admin/sources?tested=failed&source=${encodeURIComponent(source.name)}&error=${encodeURIComponent("URL responded, but it does not look like an RSS or Atom feed")}`);
-    }
-
-    await audit(admin, session.user?.id ?? null, "test_success", id, { status: response.status });
-    redirect(`/admin/sources?tested=ok&source=${encodeURIComponent(source.name)}`);
   } catch (error) {
-    const message = error instanceof Error && error.name === "AbortError" ? "Feed test timed out after 10 seconds" : "Feed could not be reached";
-    await audit(admin, session.user?.id ?? null, "test_failed", id, { reason: message });
-    redirect(`/admin/sources?tested=failed&source=${encodeURIComponent(source.name)}&error=${encodeURIComponent(message)}`);
+    result = {
+      ok: false,
+      message: error instanceof Error && error.name === "AbortError" ? "Feed test timed out after 10 seconds" : "Feed could not be reached",
+    };
   } finally {
     clearTimeout(timeout);
   }
+
+  if (result.ok) {
+    await audit(admin, session.user?.id ?? null, "test_success", id, { status: result.status });
+    redirect(`/admin/sources?tested=ok&source=${encodeURIComponent(source.name)}`);
+  }
+
+  await audit(admin, session.user?.id ?? null, "test_failed", id, { status: result.status ?? null, reason: result.message });
+  redirect(`/admin/sources?tested=failed&source=${encodeURIComponent(source.name)}&error=${encodeURIComponent(result.message)}`);
 }
