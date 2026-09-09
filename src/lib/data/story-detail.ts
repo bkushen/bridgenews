@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type StorySource = { name: string; url: string; publishedAt: string | null };
+export type StorySource = {
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  headline: string;
+  url: string;
+  publishedAt: string | null;
+};
 export type StoryDetail = {
   articleId: string | null;
   slug: string;
@@ -35,7 +42,7 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
     if (!article.data) return null;
     const a = article.data;
     const [sourceResult, regionLinks, categoryLinks] = await Promise.all([
-      supabase.from("sources").select("id,name").eq("id", a.source_id).maybeSingle(),
+      supabase.from("sources").select("id,name,slug,logo_url").eq("id", a.source_id).maybeSingle(),
       supabase.from("article_regions").select("region_id").eq("article_id", a.id),
       supabase.from("article_categories").select("category_id").eq("article_id", a.id).limit(1),
     ]);
@@ -45,25 +52,43 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
       regionIds.length ? supabase.from("regions").select("id,name").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
       categoryIds.length ? supabase.from("categories").select("id,name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
     ]);
-    let sourceRows: StorySource[] = [{ name: sourceResult.data?.name || "Source", url: a.original_url, publishedAt: a.published_at }];
+    const leadSource = sourceResult.data;
+    let sourceRows: StorySource[] = [{
+      name: leadSource?.name || "Source",
+      slug: leadSource?.slug || "source",
+      logoUrl: leadSource?.logo_url || null,
+      headline: a.title,
+      url: a.original_url,
+      publishedAt: a.published_at,
+    }];
     if (a.story_cluster_id) {
-      const peers = await supabase.from("articles").select("source_id,original_url,published_at").eq("story_cluster_id", a.story_cluster_id).eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(12);
+      const peers = await supabase.from("articles").select("source_id,title,original_url,published_at").eq("story_cluster_id", a.story_cluster_id).eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(20);
       if (!peers.error && peers.data?.length) {
         const sourceIds = [...new Set(peers.data.map((peer) => peer.source_id))];
-        const peerSources = await supabase.from("sources").select("id,name").in("id", sourceIds);
-        const names = new Map((peerSources.data ?? []).map((source) => [source.id, source.name]));
-        sourceRows = peers.data.map((peer) => ({ name: names.get(peer.source_id) || "Source", url: peer.original_url, publishedAt: peer.published_at }));
+        const peerSources = await supabase.from("sources").select("id,name,slug,logo_url").in("id", sourceIds);
+        const sourceMeta = new Map((peerSources.data ?? []).map((source) => [source.id, source]));
+        sourceRows = peers.data.map((peer) => {
+          const source = sourceMeta.get(peer.source_id);
+          return {
+            name: source?.name || "Source",
+            slug: source?.slug || "source",
+            logoUrl: source?.logo_url || null,
+            headline: peer.title,
+            url: peer.original_url,
+            publishedAt: peer.published_at,
+          };
+        });
       }
     }
     return {
       articleId: a.id,
       slug: a.slug,
       title: a.title,
-      summary: a.ai_summary || a.description || "Open the original publisher links for full coverage.",
+      summary: a.description || a.ai_summary || "Open the original publisher links for full coverage.",
       description: a.description,
       imageUrl: a.image_url,
       category: categoriesResult.data?.[0]?.name || "News",
-      source: sourceResult.data?.name || "Source",
+      source: leadSource?.name || "Source",
       sourceCount: sourceRows.length,
       regions: (regionsResult.data ?? []).map((region) => region.name),
       published: relativeTime(a.published_at || a.discovered_at),
