@@ -1,30 +1,221 @@
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { AdminFeedback } from "@/components/admin/admin-feedback";
+import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { SourceLogo } from "@/components/source-logo";
 import { deleteSource, updateSource } from "../control-actions";
 import { setSourceRegion } from "./relationships";
 
-export default async function SourcesPage() {
-  const admin = createAdminClient();
-  const [{ data: sources }, { data: regions }, { data: sourceRegions }] = await Promise.all([
-    admin.from("sources").select("id,name,slug,website_url,feed_url,source_type,logo_url,enabled,auto_publish,default_language_code,fetch_interval_minutes,max_items_per_fetch,last_success_at,last_error_at,last_error_message,consecutive_failures").order("name"),
+type SearchParams = Promise<{ q?: string; saved?: string; deleted?: string; error?: string }>;
+
+export default async function SourcesPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  const q = (params.q ?? "").trim().toLowerCase();
+  const admin = await createClient();
+
+  const [{ data: rawSources }, { data: regions }, { data: sourceRegions }] = await Promise.all([
+    admin
+      .from("sources")
+      .select("id,name,slug,website_url,feed_url,source_type,logo_url,enabled,auto_publish,default_language_code,fetch_interval_minutes,max_items_per_fetch,last_success_at,last_error_at,last_error_message,consecutive_failures")
+      .order("name"),
     admin.from("regions").select("id,name,slug,is_active").order("name"),
     admin.from("source_regions").select("source_id,region_id,is_primary"),
   ]);
-  const primaryRegion = new Map((sourceRegions ?? []).filter((row: any) => row.is_primary).map((row: any) => [row.source_id, row.region_id]));
-  const regionName = new Map((regions ?? []).map((row:any)=>[row.id,row.name]));
-  const healthy = (sources ?? []).filter((s:any)=>s.enabled && !s.last_error_message && Number(s.consecutive_failures ?? 0) === 0).length;
 
-  return <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Publishing network</p><h1 className="mt-1 text-3xl font-black tracking-tight">Sources</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">Manage publisher feeds, logos, region assignment and automatic publishing in one place.</p></div><div className="flex flex-wrap gap-2"><span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">{healthy}/{(sources ?? []).length} healthy</span><Link href="/admin/sources/new" className="rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800">+ Add publisher</Link></div></div>
+  const allSources = rawSources ?? [];
+  const sources = q
+    ? allSources.filter((source: any) =>
+        [source.name, source.website_url, source.source_type, source.default_language_code]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(q)),
+      )
+    : allSources;
 
-    <div className="mt-6 space-y-4">{(sources ?? []).map((s: any) => {const bad=Boolean(s.last_error_message)||Number(s.consecutive_failures??0)>0; const rName=regionName.get(primaryRegion.get(s.id)) ?? "No region"; return <article key={s.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center"><div className="flex min-w-0 flex-1 items-center gap-4">{s.logo_url?<img src={s.logo_url} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-gray-200 bg-white object-contain p-1.5"/>:<div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gray-100 font-black text-gray-500">{s.name.slice(0,2)}</div>}<div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-lg font-black">{s.name}</h2><span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${bad?"bg-amber-50 text-amber-700":"bg-emerald-50 text-emerald-700"}`}>{bad?"Needs attention":"Healthy"}</span>{!s.enabled?<span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black text-gray-600">Disabled</span>:null}</div><p className="mt-1 text-xs font-semibold text-gray-500">{rName} · {s.default_language_code?.toUpperCase()} · {s.source_type?.toUpperCase()} · every {s.fetch_interval_minutes} min</p><p className="mt-1 truncate text-xs text-gray-400">{s.website_url}</p></div></div><div className="flex shrink-0 flex-wrap items-center gap-2"><span className={`rounded-lg px-3 py-2 text-xs font-black ${s.auto_publish?"bg-blue-50 text-blue-700":"bg-gray-100 text-gray-600"}`}>{s.auto_publish?"Auto publish":"Review first"}</span><details className="relative"><summary className="cursor-pointer list-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-black hover:bg-gray-50">Manage ▾</summary><div className="mt-3 md:hidden"/></details></div></div>
+  const primaryRegion = new Map(
+    (sourceRegions ?? []).filter((row: any) => row.is_primary).map((row: any) => [row.source_id, row.region_id]),
+  );
+  const regionName = new Map((regions ?? []).map((row: any) => [row.id, row.name]));
+  const healthy = allSources.filter(
+    (source: any) => source.enabled && !source.last_error_message && Number(source.consecutive_failures ?? 0) === 0,
+  ).length;
+  const attention = allSources.filter(
+    (source: any) => Boolean(source.last_error_message) || Number(source.consecutive_failures ?? 0) > 0,
+  ).length;
 
-      <details className="border-t border-gray-100"><summary className="cursor-pointer list-none px-5 py-3 text-sm font-black text-gray-700 hover:bg-gray-50">Edit source settings ▾</summary><div className="border-t border-gray-100 bg-gray-50/60 p-5">
-        <form action={updateSource}><input type="hidden" name="id" value={s.id}/><div className="grid gap-4 xl:grid-cols-2"><div className="space-y-3"><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Publisher name<input name="name" defaultValue={s.name} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-gray-900"/></label><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Website URL<input name="website_url" defaultValue={s.website_url} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"/></label><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Feed URL<input name="feed_url" defaultValue={s.feed_url ?? ""} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"/></label><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Logo URL<input name="logo_url" defaultValue={s.logo_url ?? ""} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"/></label></div><div className="space-y-3"><div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Language<select name="default_language_code" defaultValue={s.default_language_code} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"><option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option></select></label><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Fetch interval<input name="fetch_interval_minutes" type="number" defaultValue={s.fetch_interval_minutes} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"/></label></div><label className="block text-xs font-black uppercase tracking-wide text-gray-400">Max items per fetch<input name="max_items_per_fetch" type="number" defaultValue={s.max_items_per_fetch} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"/></label><div className="grid gap-2 sm:grid-cols-2"><label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-bold"><input type="checkbox" name="enabled" defaultChecked={s.enabled}/>Enabled</label><label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-bold"><input type="checkbox" name="auto_publish" defaultChecked={s.auto_publish}/>Auto publish</label></div><div className="flex flex-col gap-2 sm:flex-row"><button className="flex-1 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800">Save source</button><button formAction={deleteSource} className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-600 hover:bg-red-50">Delete</button></div></div></div>{bad?<div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><p className="font-black">Latest issue</p><p className="mt-1 text-xs leading-5">{s.last_error_message || `${s.consecutive_failures} consecutive failures`}</p></div>:<div className="mt-4 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700">Last successful fetch: {s.last_success_at?new Date(s.last_success_at).toLocaleString("en-AU"):"Not recorded yet"}</div>}</form>
+  return (
+    <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <AdminFeedback saved={params.saved === "1"} deleted={params.deleted === "1"} error={params.error ?? null} />
 
-        <form action={setSourceRegion} className="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:items-end"><input type="hidden" name="source_id" value={s.id}/><label className="flex-1 text-xs font-black uppercase tracking-wide text-gray-400">Primary region<select name="region_id" defaultValue={primaryRegion.get(s.id) ?? ""} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900"><option value="" disabled>Choose region</option>{(regions ?? []).map((r:any)=><option key={r.id} value={r.id}>{r.name}{r.is_active?"":" (inactive)"}</option>)}</select></label><button className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-black hover:bg-gray-50">Save region</button></form>
-      </div></details>
-    </article>})}</div>
-  </main>;
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Publishing network</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">Sources</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            Manage publisher identity, feeds, logos, regions and automatic publishing.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">{healthy} healthy</span>
+          {attention > 0 ? <span className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">{attention} need attention</span> : null}
+          <Link href="/admin/sources/new" className="rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800">
+            + Add publisher
+          </Link>
+        </div>
+      </div>
+
+      <form className="mt-6 flex max-w-2xl gap-2" action="/admin/sources">
+        <input
+          name="q"
+          defaultValue={params.q ?? ""}
+          placeholder="Search publisher, website, type or language…"
+          className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+        />
+        <button className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-black hover:bg-gray-50">Search</button>
+        {q ? <Link href="/admin/sources" className="rounded-xl px-3 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100">Clear</Link> : null}
+      </form>
+
+      <p className="mt-3 text-xs font-semibold text-gray-400">
+        Showing {sources.length} of {allSources.length} publishers
+      </p>
+
+      <div className="mt-5 space-y-4">
+        {sources.map((source: any) => {
+          const bad = Boolean(source.last_error_message) || Number(source.consecutive_failures ?? 0) > 0;
+          const sourceRegionName = regionName.get(primaryRegion.get(source.id)) ?? "No region";
+
+          return (
+            <article key={source.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <SourceLogo name={source.name} src={source.logo_url} className="h-14 w-14" imageClassName="p-1.5" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="truncate text-lg font-black">{source.name}</h2>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${bad ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                        {bad ? "Needs attention" : "Healthy"}
+                      </span>
+                      {!source.enabled ? <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black text-gray-600">Disabled</span> : null}
+                    </div>
+                    <p className="mt-1 text-xs font-semibold text-gray-500">
+                      {sourceRegionName} · {source.default_language_code?.toUpperCase()} · {source.source_type?.toUpperCase()} · every {source.fetch_interval_minutes} min
+                    </p>
+                    <p className="mt-1 truncate text-xs text-gray-400">{source.website_url}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={`rounded-lg px-3 py-2 text-xs font-black ${source.auto_publish ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                    {source.auto_publish ? "Auto publish" : "Review first"}
+                  </span>
+                </div>
+              </div>
+
+              <details className="border-t border-gray-100">
+                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-gray-700 hover:bg-gray-50">
+                  Edit publisher settings <span className="text-gray-400">▾</span>
+                </summary>
+                <div className="border-t border-gray-100 bg-gray-50/60 p-5">
+                  <form action={updateSource}>
+                    <input type="hidden" name="id" value={source.id} />
+                    <div className="grid gap-6 xl:grid-cols-2">
+                      <section>
+                        <h3 className="text-sm font-black">Identity & links</h3>
+                        <p className="mt-1 text-xs text-gray-500">What visitors see and where BridgeNews fetches content.</p>
+                        <div className="mt-4 space-y-4">
+                          <Field label="Publisher name"><input name="name" defaultValue={source.name} required className={inputClass} /></Field>
+                          <Field label="Website URL"><input name="website_url" type="url" defaultValue={source.website_url} required className={inputClass} /></Field>
+                          <Field label="Feed URL" hint="Leave empty for non-RSS sources."><input name="feed_url" type="url" defaultValue={source.feed_url ?? ""} className={inputClass} /></Field>
+                          <Field label="Logo URL" hint="Use a stable direct image URL (PNG, SVG, WebP or JPG)."><input name="logo_url" type="url" defaultValue={source.logo_url ?? ""} className={inputClass} /></Field>
+                        </div>
+                      </section>
+
+                      <section>
+                        <h3 className="text-sm font-black">Publishing behaviour</h3>
+                        <p className="mt-1 text-xs text-gray-500">Control language, polling frequency and automatic publishing.</p>
+                        <div className="mt-4 space-y-4">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Field label="Language">
+                              <select name="default_language_code" defaultValue={source.default_language_code} className={inputClass}>
+                                <option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option>
+                              </select>
+                            </Field>
+                            <Field label="Fetch interval" hint="Minutes">
+                              <input name="fetch_interval_minutes" type="number" min={5} defaultValue={source.fetch_interval_minutes} className={inputClass} />
+                            </Field>
+                          </div>
+                          <Field label="Max items per fetch">
+                            <input name="max_items_per_fetch" type="number" min={1} defaultValue={source.max_items_per_fetch} className={inputClass} />
+                          </Field>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold">
+                              <input type="checkbox" name="enabled" defaultChecked={source.enabled} /> Enabled source
+                            </label>
+                            <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold">
+                              <input type="checkbox" name="auto_publish" defaultChecked={source.auto_publish} /> Auto publish
+                            </label>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+
+                    {bad ? (
+                      <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                        <p className="font-black">Latest ingestion issue</p>
+                        <p className="mt-1 text-xs leading-5">{source.last_error_message || `${source.consecutive_failures} consecutive failures`}</p>
+                      </div>
+                    ) : (
+                      <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-xs font-bold text-emerald-700">
+                        Last successful fetch: {source.last_success_at ? new Date(source.last_success_at).toLocaleString("en-AU") : "Not recorded yet"}
+                      </div>
+                    )}
+
+                    <div className="mt-5 flex flex-col-reverse gap-2 border-t border-gray-200 pt-5 sm:flex-row sm:justify-between">
+                      <ConfirmSubmitButton
+                        formAction={deleteSource}
+                        label="Delete publisher"
+                        pendingLabel="Deleting…"
+                        confirmMessage={`Delete ${source.name}? This cannot be undone.`}
+                        className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      />
+                      <button className="rounded-xl bg-gray-950 px-6 py-2.5 text-sm font-black text-white hover:bg-gray-800">Save changes</button>
+                    </div>
+                  </form>
+
+                  <form action={setSourceRegion} className="mt-5 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-end">
+                    <input type="hidden" name="source_id" value={source.id} />
+                    <label className="flex-1 text-xs font-black uppercase tracking-wide text-gray-400">
+                      Primary region
+                      <select name="region_id" defaultValue={primaryRegion.get(source.id) ?? ""} className={inputClass}>
+                        <option value="" disabled>Choose region</option>
+                        {(regions ?? []).map((region: any) => <option key={region.id} value={region.id}>{region.name}{region.is_active ? "" : " (inactive)"}</option>)}
+                      </select>
+                    </label>
+                    <button className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-black hover:bg-gray-50">Save region</button>
+                  </form>
+                </div>
+              </details>
+            </article>
+          );
+        })}
+
+        {sources.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+            <p className="font-black">No publishers found</p>
+            <p className="mt-1 text-sm text-gray-500">Try a different search term.</p>
+          </div>
+        ) : null}
+      </div>
+    </main>
+  );
+}
+
+const inputClass = "mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100";
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-xs font-black uppercase tracking-wide text-gray-400">
+      {label}
+      {children}
+      {hint ? <span className="mt-1 block text-[11px] font-semibold normal-case tracking-normal text-gray-400">{hint}</span> : null}
+    </label>
+  );
 }
