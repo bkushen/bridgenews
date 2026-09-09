@@ -25,6 +25,29 @@ a { color: inherit; text-decoration: none; }
 img { display: block; }
 ::selection { background: #111318; color: #fff; }
 
+/* Region switcher: keep selected and hover states readable. */
+nav[aria-label="Choose news region"] a[aria-current="page"] {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+nav[aria-label="Choose news region"] a[aria-current="page"]:hover,
+nav[aria-label="Choose news region"] a[aria-current="page"]:focus-visible {
+  background: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+nav[aria-label="Choose news region"] a:not([aria-current="page"]):hover,
+nav[aria-label="Choose news region"] a:not([aria-current="page"]):focus-visible {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+nav[aria-label="Choose news region"] a:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
 @keyframes liveTickerScroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
