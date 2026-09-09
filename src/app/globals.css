@@ -52,30 +52,29 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
   .source-rail-track { animation: none; }
 }
 
-/* Admin visual system */
+/* Admin visual system — clean black and white */
 .admin-theme-shell {
-  --admin-bg: #f7f8fa;
+  --admin-bg: #f7f7f7;
   --admin-panel: #ffffff;
-  --admin-panel-soft: #f9fafb;
-  --admin-border: #e5e7eb;
-  --admin-border-strong: #d1d5db;
-  --admin-text: #111827;
-  --admin-text-soft: #374151;
-  --admin-muted: #6b7280;
-  --admin-accent: #4f46e5;
-  --admin-accent-hover: #4338ca;
-  --admin-success: #047857;
-  --admin-success-bg: #ecfdf5;
-  --admin-warning: #b45309;
+  --admin-panel-soft: #fafafa;
+  --admin-border: #e5e5e5;
+  --admin-border-strong: #d4d4d4;
+  --admin-text: #0a0a0a;
+  --admin-text-soft: #262626;
+  --admin-muted: #737373;
+  --admin-accent: #0a0a0a;
+  --admin-accent-hover: #262626;
+  --admin-success: #166534;
+  --admin-success-bg: #f0fdf4;
+  --admin-warning: #92400e;
   --admin-warning-bg: #fffbeb;
-  --admin-danger: #be123c;
-  --admin-danger-bg: #fff1f2;
-  --admin-info: #1d4ed8;
-  --admin-info-bg: #eff6ff;
+  --admin-danger: #b91c1c;
+  --admin-danger-bg: #fef2f2;
+  --admin-info: #262626;
+  --admin-info-bg: #f5f5f5;
   background: var(--admin-bg) !important;
   color: var(--admin-text) !important;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -84,12 +83,12 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 .admin-theme-shell *::before,
 .admin-theme-shell *::after {
   transition-property: background-color, border-color, color, box-shadow, opacity;
-  transition-duration: 140ms;
+  transition-duration: 120ms;
   transition-timing-function: ease;
 }
 
 .admin-theme-shell :is(button, a, input, select, textarea, summary):focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid #0a0a0a;
   outline-offset: 2px;
 }
 
@@ -104,17 +103,15 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
   border-color: var(--admin-border-strong) !important;
   background: #ffffff;
   color: var(--admin-text);
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03);
+  box-shadow: none;
 }
-
 .admin-theme-shell input::placeholder,
-.admin-theme-shell textarea::placeholder { color: #9ca3af; }
-
+.admin-theme-shell textarea::placeholder { color: #a3a3a3; }
 .admin-theme-shell input:focus,
 .admin-theme-shell select:focus,
 .admin-theme-shell textarea:focus {
-  border-color: #818cf8 !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10) !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 0 0 0 1px #0a0a0a !important;
 }
 
 .admin-theme-shell article,
@@ -126,7 +123,7 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 .admin-theme-shell form.rounded-xl.border {
   border-color: var(--admin-border) !important;
   background-color: var(--admin-panel);
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.025), 0 8px 24px rgba(17, 24, 39, 0.025);
+  box-shadow: none;
 }
 
 .admin-theme-shell table { border-collapse: collapse; }
@@ -135,32 +132,32 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
   color: var(--admin-muted) !important;
   font-size: 10px !important;
   font-weight: 800 !important;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
 }
 .admin-theme-shell td { color: var(--admin-text-soft); }
 .admin-theme-shell tbody tr:hover { background: #fafafa; }
 
 .admin-sidebar { box-shadow: none !important; }
-.admin-sidebar nav { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+.admin-sidebar nav { scrollbar-width: thin; scrollbar-color: #d4d4d4 transparent; }
 .admin-content { min-height: 100vh; }
 
 .admin-theme-toggle {
   border-color: var(--admin-border) !important;
   background: #ffffff !important;
-  color: #4b5563 !important;
+  color: #404040 !important;
   box-shadow: none !important;
 }
+.admin-theme-toggle:hover { border-color: #a3a3a3 !important; background: #fafafa !important; }
 
-.admin-theme-toggle:hover { border-color: #c7d2fe !important; background: #f9fafb !important; }
-.admin-nav-item { min-height: 40px; color: #4b5563; }
-.admin-nav-item:hover { background: #f3f4f6 !important; color: #111827 !important; }
+.admin-nav-item { min-height: 40px; color: #525252; }
+.admin-nav-item:hover { background: #f5f5f5 !important; color: #0a0a0a !important; }
 .admin-nav-item.is-active {
-  background: #eef2ff !important;
-  color: #3730a3 !important;
-  box-shadow: inset 0 0 0 1px #c7d2fe !important;
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
-.admin-nav-item.is-active .admin-nav-icon { background: #4f46e5 !important; color: #ffffff !important; }
-.admin-mobile-nav-item.is-active { background: #4f46e5 !important; color: #ffffff !important; box-shadow: none !important; }
+.admin-nav-item.is-active .admin-nav-icon { background: #ffffff !important; color: #0a0a0a !important; }
+.admin-mobile-nav-item.is-active { background: #0a0a0a !important; color: #ffffff !important; box-shadow: none !important; }
 .admin-signout:hover { color: var(--admin-danger) !important; background: var(--admin-danger-bg) !important; }
 
 .admin-theme-shell main { width: 100%; }
@@ -171,18 +168,31 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
   font-weight: 750;
   letter-spacing: -0.025em;
 }
-
 .admin-theme-shell p { line-height: 1.55; }
-
 .admin-theme-shell .shadow-sm,
 .admin-theme-shell .shadow-lg,
 .admin-theme-shell .shadow-xl,
-.admin-theme-shell .shadow-2xl { box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03) !important; }
-
+.admin-theme-shell .shadow-2xl { box-shadow: none !important; }
 .admin-theme-shell button:not(:disabled) { cursor: pointer; }
 .admin-theme-shell summary { cursor: pointer; }
 
-/* Normalize semantic status colors used throughout admin */
+/* Neutralize blue/indigo UI accents inside admin */
+.admin-theme-shell .bg-indigo-600,
+.admin-theme-shell .bg-indigo-500,
+.admin-theme-shell .bg-blue-600,
+.admin-theme-shell .bg-blue-500 { background-color: #0a0a0a !important; }
+.admin-theme-shell .hover\:bg-indigo-700:hover,
+.admin-theme-shell .hover\:bg-blue-700:hover { background-color: #262626 !important; }
+.admin-theme-shell .text-indigo-600,
+.admin-theme-shell .text-indigo-700,
+.admin-theme-shell .text-blue-600,
+.admin-theme-shell .text-blue-700 { color: #0a0a0a !important; }
+.admin-theme-shell .bg-indigo-50,
+.admin-theme-shell .bg-blue-50 { background-color: #f5f5f5 !important; }
+.admin-theme-shell .border-indigo-200,
+.admin-theme-shell .border-blue-200 { border-color: #d4d4d4 !important; }
+
+/* Keep semantic status colors only where they communicate state */
 .admin-theme-shell .bg-emerald-50 { background-color: var(--admin-success-bg) !important; }
 .admin-theme-shell .text-emerald-700,
 .admin-theme-shell .text-emerald-600 { color: var(--admin-success) !important; }
@@ -196,69 +206,65 @@ nav[aria-label="Choose news region"] a:focus-visible { outline: 2px solid #dc262
 .admin-theme-shell .text-red-700,
 .admin-theme-shell .text-rose-600,
 .admin-theme-shell .text-rose-700 { color: var(--admin-danger) !important; }
-.admin-theme-shell .bg-blue-50,
-.admin-theme-shell .bg-indigo-50 { background-color: var(--admin-info-bg) !important; }
-.admin-theme-shell .text-blue-700,
-.admin-theme-shell .text-indigo-700 { color: var(--admin-info) !important; }
 
-/* Dark admin theme */
+/* Dark admin theme: true black and white */
 [data-admin-theme="dark"] {
-  --admin-bg: #0b0f17;
-  --admin-panel: #101720;
-  --admin-panel-soft: #0f172a;
-  --admin-border: #263244;
-  --admin-border-strong: #334155;
-  --admin-text: #f8fafc;
-  --admin-text-soft: #cbd5e1;
-  --admin-muted: #94a3b8;
-  background: var(--admin-bg) !important;
-  color: var(--admin-text) !important;
+  --admin-bg: #000000;
+  --admin-panel: #0a0a0a;
+  --admin-panel-soft: #111111;
+  --admin-border: #262626;
+  --admin-border-strong: #404040;
+  --admin-text: #ffffff;
+  --admin-text-soft: #e5e5e5;
+  --admin-muted: #a3a3a3;
+  background: #000000 !important;
+  color: #ffffff !important;
 }
-
 [data-admin-theme="dark"] .admin-mobile-header,
 [data-admin-theme="dark"] .admin-content,
-[data-admin-theme="dark"] .admin-sidebar { background-color: #0b0f17 !important; color: #e5e7eb !important; }
-[data-admin-theme="dark"] .admin-sidebar { border-color: #263244 !important; }
+[data-admin-theme="dark"] .admin-sidebar { background-color: #000000 !important; color: #ffffff !important; }
+[data-admin-theme="dark"] .admin-sidebar { border-color: #262626 !important; }
 [data-admin-theme="dark"] .bg-white,
 [data-admin-theme="dark"] .bg-slate-50,
 [data-admin-theme="dark"] .bg-gray-50,
-[data-admin-theme="dark"] .bg-gray-50\/60 { background-color: #111827 !important; }
+[data-admin-theme="dark"] .bg-gray-50\/60 { background-color: #0a0a0a !important; }
 [data-admin-theme="dark"] .bg-slate-100,
-[data-admin-theme="dark"] .bg-gray-100 { background-color: #172033 !important; }
+[data-admin-theme="dark"] .bg-gray-100 { background-color: #111111 !important; }
 [data-admin-theme="dark"] .text-slate-950,
 [data-admin-theme="dark"] .text-gray-950,
 [data-admin-theme="dark"] .text-gray-900,
 [data-admin-theme="dark"] .text-slate-900,
 [data-admin-theme="dark"] .text-gray-800,
-[data-admin-theme="dark"] .text-slate-800 { color: #f8fafc !important; }
+[data-admin-theme="dark"] .text-slate-800 { color: #ffffff !important; }
 [data-admin-theme="dark"] .text-gray-700,
 [data-admin-theme="dark"] .text-slate-700,
 [data-admin-theme="dark"] .text-gray-600,
 [data-admin-theme="dark"] .text-slate-600,
 [data-admin-theme="dark"] .text-gray-500,
-[data-admin-theme="dark"] .text-slate-500 { color: #cbd5e1 !important; }
+[data-admin-theme="dark"] .text-slate-500 { color: #d4d4d4 !important; }
 [data-admin-theme="dark"] .text-gray-400,
-[data-admin-theme="dark"] .text-slate-400 { color: #94a3b8 !important; }
+[data-admin-theme="dark"] .text-slate-400 { color: #a3a3a3 !important; }
 [data-admin-theme="dark"] .border-gray-100,
 [data-admin-theme="dark"] .border-gray-200,
 [data-admin-theme="dark"] .border-slate-100,
-[data-admin-theme="dark"] .border-slate-200 { border-color: #263244 !important; }
+[data-admin-theme="dark"] .border-slate-200 { border-color: #262626 !important; }
 [data-admin-theme="dark"] input,
 [data-admin-theme="dark"] select,
-[data-admin-theme="dark"] textarea { background: #0b1220 !important; border-color: #334155 !important; color: #f8fafc !important; }
+[data-admin-theme="dark"] textarea { background: #0a0a0a !important; border-color: #404040 !important; color: #ffffff !important; }
 [data-admin-theme="dark"] input::placeholder,
-[data-admin-theme="dark"] textarea::placeholder { color: #64748b; }
+[data-admin-theme="dark"] textarea::placeholder { color: #737373; }
 [data-admin-theme="dark"] .admin-secondary-action,
 [data-admin-theme="dark"] .admin-theme-toggle,
-[data-admin-theme="dark"] .admin-mobile-nav-item:not(.is-active) { background: #111827 !important; border-color: #334155 !important; color: #cbd5e1 !important; }
-[data-admin-theme="dark"] .admin-nav-item:not(.is-active):hover { background: rgba(255,255,255,.06) !important; color: #fff !important; }
-[data-admin-theme="dark"] .admin-nav-item.is-active { background: rgba(79,70,229,.18) !important; color: #fff !important; box-shadow: inset 0 0 0 1px rgba(129,140,248,.25) !important; }
+[data-admin-theme="dark"] .admin-mobile-nav-item:not(.is-active) { background: #0a0a0a !important; border-color: #404040 !important; color: #d4d4d4 !important; }
+[data-admin-theme="dark"] .admin-nav-item:not(.is-active):hover { background: #111111 !important; color: #ffffff !important; }
+[data-admin-theme="dark"] .admin-nav-item.is-active { background: #ffffff !important; color: #000000 !important; box-shadow: none !important; }
+[data-admin-theme="dark"] .admin-nav-item.is-active .admin-nav-icon { background: #000000 !important; color: #ffffff !important; }
 [data-admin-theme="dark"] article,
 [data-admin-theme="dark"] section.rounded-2xl,
 [data-admin-theme="dark"] section.rounded-3xl,
 [data-admin-theme="dark"] div.rounded-2xl.border,
 [data-admin-theme="dark"] form.rounded-2xl.border,
 [data-admin-theme="dark"] div.rounded-xl.border,
-[data-admin-theme="dark"] form.rounded-xl.border { border-color: #263244 !important; box-shadow: none !important; background-color: #111827 !important; }
-[data-admin-theme="dark"] thead { background: #0f172a !important; }
-[data-admin-theme="dark"] tbody tr:hover { background: rgba(255,255,255,.025); }
+[data-admin-theme="dark"] form.rounded-xl.border { border-color: #262626 !important; box-shadow: none !important; background-color: #0a0a0a !important; }
+[data-admin-theme="dark"] thead { background: #111111 !important; }
+[data-admin-theme="dark"] tbody tr:hover { background: #111111; }
