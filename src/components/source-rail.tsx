@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PublicSource } from "@/lib/data/sources";
+import { SourceLogo } from "@/components/source-logo";
 
 function sourceIcon(source: PublicSource) {
   if (source.logoUrl) return source.logoUrl;
@@ -16,9 +17,7 @@ function SourceCard({ source }: { source: PublicSource }) {
   const icon = sourceIcon(source);
   return (
     <Link href={`/sources/${source.slug}`} className="flex min-w-[180px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 transition hover:-translate-y-0.5 hover:border-gray-400 hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900" aria-label={`View ${source.name} on BridgeNews`}>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white text-xs font-black text-gray-500">
-        {icon ? <img src={icon} alt="" className="h-full w-full object-contain p-1" /> : source.name.slice(0, 2).toUpperCase()}
-      </div>
+      <SourceLogo name={source.name} src={icon} className="h-10 w-10" imageClassName="p-1" />
       <div className="min-w-0">
         <p className="truncate text-xs font-black text-gray-900">{source.name}</p>
         <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{source.languageCode} · view source</p>
