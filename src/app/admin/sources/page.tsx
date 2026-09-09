@@ -5,9 +5,10 @@ import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { SourceLogo } from "@/components/source-logo";
 import { deleteSource, updateSource } from "../control-actions";
+import { testSource } from "./actions";
 import { setSourceRegion } from "./relationships";
 
-type SearchParams = Promise<{ q?: string; saved?: string; deleted?: string; error?: string }>;
+type SearchParams = Promise<{ q?: string; saved?: string; deleted?: string; error?: string; tested?: string; source?: string }>;
 
 export default async function SourcesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -46,6 +47,11 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
   return (
     <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <AdminFeedback saved={params.saved === "1"} deleted={params.deleted === "1"} error={params.error ?? null} />
+      {params.tested === "ok" ? (
+        <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+          Feed test passed{params.source ? ` for ${params.source}` : ""}. The URL returned a valid-looking RSS or Atom feed.
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
@@ -145,7 +151,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
                             </Field>
                           </div>
                           <Field label="Max items per fetch">
-                            <input name="max_items_per_fetch" type="number" min={1} defaultValue={source.max_items_per_fetch} className={inputClass} />
+                            <input name="max_items_per_fetch" type="number" min={1} max={100} defaultValue={source.max_items_per_fetch} className={inputClass} />
                           </Field>
                           <div className="grid gap-2 sm:grid-cols-2">
                             <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold">
@@ -176,7 +182,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
                       </div>
                     )}
 
-                    <div className="mt-5 flex flex-col-reverse gap-2 border-t border-gray-200 pt-5 sm:flex-row sm:justify-between">
+                    <div className="mt-5 flex flex-col-reverse gap-2 border-t border-gray-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                       <ConfirmSubmitButton
                         formAction={deleteSource}
                         label="Delete publisher"
@@ -184,7 +190,10 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
                         confirmMessage={`Delete ${source.name}? This cannot be undone.`}
                         className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
                       />
-                      <button className="rounded-xl bg-gray-950 px-6 py-2.5 text-sm font-black text-white hover:bg-gray-800">Save changes</button>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <button formAction={testSource} className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-100">Test feed</button>
+                        <button className="rounded-xl bg-gray-950 px-6 py-2.5 text-sm font-black text-white hover:bg-gray-800">Save changes</button>
+                      </div>
                     </div>
                   </form>
 
