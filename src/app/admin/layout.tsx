@@ -3,6 +3,7 @@ import { AdminNavLink } from "@/components/admin/admin-nav-link";
 import { AdminThemeToggle } from "@/components/admin/admin-theme-toggle";
 import { requireAdmin } from "./actions";
 import { logout } from "../login/actions";
+import "./button-contrast.css";
 
 export const dynamic = "force-dynamic";
 

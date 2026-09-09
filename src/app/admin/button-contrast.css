@@ -1,0 +1,64 @@
+/* Admin button contrast guardrails for black/white theme */
+.admin-theme-shell :is(button, a).bg-indigo-600,
+.admin-theme-shell :is(button, a).bg-indigo-500,
+.admin-theme-shell :is(button, a).bg-blue-600,
+.admin-theme-shell :is(button, a).bg-blue-500,
+.admin-theme-shell :is(button, a).bg-slate-950,
+.admin-theme-shell :is(button, a).bg-gray-950,
+.admin-theme-shell :is(button, a).bg-black {
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+  border-color: #0a0a0a !important;
+}
+
+.admin-theme-shell :is(button, a).bg-indigo-600:hover,
+.admin-theme-shell :is(button, a).bg-indigo-500:hover,
+.admin-theme-shell :is(button, a).bg-blue-600:hover,
+.admin-theme-shell :is(button, a).bg-blue-500:hover,
+.admin-theme-shell :is(button, a).bg-slate-950:hover,
+.admin-theme-shell :is(button, a).bg-gray-950:hover,
+.admin-theme-shell :is(button, a).bg-black:hover {
+  background-color: #262626 !important;
+  color: #ffffff !important;
+}
+
+.admin-theme-shell :is(button, a).bg-white,
+.admin-theme-shell :is(button, a).bg-slate-50,
+.admin-theme-shell :is(button, a).bg-gray-50,
+.admin-theme-shell :is(button, a).bg-indigo-50,
+.admin-theme-shell :is(button, a).bg-blue-50 {
+  color: #171717 !important;
+}
+
+.admin-theme-shell :is(button, a).border.border-slate-200,
+.admin-theme-shell :is(button, a).border.border-gray-200,
+.admin-theme-shell :is(button, a).border.border-neutral-200 {
+  color: #262626;
+}
+
+.admin-theme-shell :is(button, a):disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-admin-theme="dark"] :is(button, a).bg-indigo-600,
+[data-admin-theme="dark"] :is(button, a).bg-indigo-500,
+[data-admin-theme="dark"] :is(button, a).bg-blue-600,
+[data-admin-theme="dark"] :is(button, a).bg-blue-500,
+[data-admin-theme="dark"] :is(button, a).bg-slate-950,
+[data-admin-theme="dark"] :is(button, a).bg-gray-950,
+[data-admin-theme="dark"] :is(button, a).bg-black {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+[data-admin-theme="dark"] :is(button, a).bg-white,
+[data-admin-theme="dark"] :is(button, a).bg-slate-50,
+[data-admin-theme="dark"] :is(button, a).bg-gray-50,
+[data-admin-theme="dark"] :is(button, a).bg-indigo-50,
+[data-admin-theme="dark"] :is(button, a).bg-blue-50 {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
