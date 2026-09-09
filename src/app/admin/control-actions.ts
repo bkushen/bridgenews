@@ -9,118 +9,33 @@ function text(formData: FormData, key: string) { return String(formData.get(key)
 function bool(formData: FormData, key: string) { return formData.get(key) === "on" || formData.get(key) === "true"; }
 function num(formData: FormData, key: string, fallback = 0) { const n = Number(formData.get(key)); return Number.isFinite(n) ? n : fallback; }
 function slugify(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+function articleStatus(value: string) { const aliases: Record<string,string> = { draft: "discovered", review: "review_required" }; const normalized = aliases[value] ?? value; return ["discovered","processing","review_required","published","rejected","failed"].includes(normalized) ? normalized : "review_required"; }
 
-async function adminContext() {
-  const session = await requireAdmin();
-  const admin = await createClient();
-  return { admin, userId: session.user?.id ?? null };
-}
-
-async function audit(admin: Awaited<ReturnType<typeof createClient>>, userId: string | null, action: string, entityType: string, entityId?: string, details: Record<string, unknown> = {}) {
-  const { error } = await admin.from("admin_audit_log").insert({ user_id: userId, action, entity_type: entityType, entity_id: entityId ?? null, details });
-  if (error) console.error("Admin audit log failed", error.message);
-}
+async function adminContext() { const session = await requireAdmin(); const admin = await createClient(); return { admin, userId: session.user?.id ?? null }; }
+async function audit(admin: Awaited<ReturnType<typeof createClient>>, userId: string | null, action: string, entityType: string, entityId?: string, details: Record<string, unknown> = {}) { const { error } = await admin.from("admin_audit_log").insert({ user_id: userId, action, entity_type: entityType, entity_id: entityId ?? null, details }); if (error) console.error("Admin audit log failed", error.message); }
 
 export async function updateSource(formData: FormData) {
-  const { admin, userId } = await adminContext();
-  const id = text(formData, "id");
-  const payload = {
-    name: text(formData, "name"), website_url: text(formData, "website_url"), feed_url: text(formData, "feed_url") || null,
-    logo_url: text(formData, "logo_url") || null, enabled: bool(formData, "enabled"), auto_publish: bool(formData, "auto_publish"),
-    default_language_code: text(formData, "default_language_code") || "en", fetch_interval_minutes: Math.max(5, num(formData, "fetch_interval_minutes", 30)),
-    max_items_per_fetch: Math.max(1, num(formData, "max_items_per_fetch", 20)), ai_summary_enabled: false, ai_classification_enabled: false,
-  };
-  const { data, error } = await admin.from("sources").update(payload).eq("id", id).select("id").single();
-  if (error) redirect(`/admin/sources?error=${encodeURIComponent(error.message)}`);
-  if (!data?.id) redirect("/admin/sources?error=Source%20was%20not%20updated");
-  await audit(admin, userId, "update", "source", id, { name: payload.name });
-  revalidatePath("/admin/sources"); revalidatePath("/sources"); revalidatePath("/");
-  redirect("/admin/sources?saved=1");
-}
-
-export async function deleteSource(formData: FormData) {
   const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const { error } = await admin.from("sources").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "source", id); revalidatePath("/admin/sources"); revalidatePath("/sources");
-  redirect("/admin/sources?deleted=1");
+  const payload = { name: text(formData, "name"), website_url: text(formData, "website_url"), feed_url: text(formData, "feed_url") || null, logo_url: text(formData, "logo_url") || null, enabled: bool(formData, "enabled"), auto_publish: bool(formData, "auto_publish"), default_language_code: text(formData, "default_language_code") || "en", fetch_interval_minutes: Math.max(5, num(formData, "fetch_interval_minutes", 30)), max_items_per_fetch: Math.max(1, num(formData, "max_items_per_fetch", 20)), ai_summary_enabled: false, ai_classification_enabled: false };
+  const { data, error } = await admin.from("sources").update(payload).eq("id", id).select("id").single(); if (error) redirect(`/admin/sources?error=${encodeURIComponent(error.message)}`); if (!data?.id) redirect("/admin/sources?error=Source%20was%20not%20updated"); await audit(admin, userId, "update", "source", id, { name: payload.name }); revalidatePath("/admin/sources"); revalidatePath("/sources"); revalidatePath("/"); redirect("/admin/sources?saved=1");
 }
+export async function deleteSource(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("sources").delete().eq("id", id); if (error) throw error; await audit(admin, userId, "delete", "source", id); revalidatePath("/admin/sources"); revalidatePath("/sources"); redirect("/admin/sources?deleted=1"); }
 
 export async function updateArticle(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const payload = { title: text(formData, "title"), description: text(formData, "description") || null, image_url: text(formData, "image_url") || null, language_code: text(formData, "language_code") || "en", status: text(formData, "status") || "published" };
-  const { error } = await admin.from("articles").update(payload).eq("id", id); if (error) throw error;
-  await audit(admin, userId, "update", "article", id, { status: payload.status }); revalidatePath("/admin/articles"); revalidatePath("/");
+  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const status = articleStatus(text(formData,"status"));
+  const payload = { title: text(formData, "title"), description: text(formData, "description") || null, image_url: text(formData, "image_url") || null, language_code: text(formData, "language_code") || "en", status, published_at: status === "published" ? new Date().toISOString() : undefined };
+  const { error } = await admin.from("articles").update(payload).eq("id", id); if (error) redirect(`/admin/articles?error=${encodeURIComponent(error.message)}`); await audit(admin, userId, "update", "article", id, { status }); revalidatePath("/admin/articles"); revalidatePath("/"); redirect("/admin/articles?saved=1");
 }
+export async function deleteArticle(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("articles").delete().eq("id", id); if (error) redirect(`/admin/articles?error=${encodeURIComponent(error.message)}`); await audit(admin, userId, "delete", "article", id); revalidatePath("/admin/articles"); revalidatePath("/"); redirect("/admin/articles?deleted=1"); }
 
-export async function deleteArticle(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const { error } = await admin.from("articles").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "article", id); revalidatePath("/admin/articles"); revalidatePath("/");
-}
-
-export async function upsertCategory(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name");
-  const payload = { name, slug: text(formData, "slug") || slugify(name), description: text(formData, "description") || null, sort_order: num(formData, "sort_order", 100) };
-  const query = id ? admin.from("categories").update(payload).eq("id", id) : admin.from("categories").insert(payload);
-  const { error } = await query; if (error) throw error; await audit(admin, userId, id ? "update" : "create", "category", id || payload.slug); revalidatePath("/admin/categories"); revalidatePath("/categories");
-}
-
-export async function deleteCategory(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("categories").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "category", id); revalidatePath("/admin/categories"); revalidatePath("/categories");
-}
-
-export async function updateRegion(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const { error } = await admin.from("regions").update({ name: text(formData, "name"), slug: text(formData, "slug"), is_active: bool(formData, "is_active") }).eq("id", id); if (error) throw error;
-  await audit(admin, userId, "update", "region", id); revalidatePath("/admin/regions"); revalidatePath("/");
-}
-
-export async function upsertTopic(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name");
-  const payload = { name, slug: text(formData, "slug") || slugify(name), description: text(formData, "description") || null, trending_score: num(formData, "trending_score", 0) };
-  const query = id ? admin.from("topics").update(payload).eq("id", id) : admin.from("topics").insert(payload); const { error } = await query; if (error) throw error;
-  await audit(admin, userId, id ? "update" : "create", "topic", id || payload.slug); revalidatePath("/admin/topics"); revalidatePath("/topics");
-}
-
-export async function deleteTopic(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("topics").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "topic", id); revalidatePath("/admin/topics"); revalidatePath("/topics");
-}
-
-export async function updateHomepageSection(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const { error } = await admin.from("homepage_sections").update({ enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100) }).eq("id", id); if (error) throw error;
-  await audit(admin, userId, "update", "homepage_section", id); revalidatePath("/admin/homepage"); revalidatePath("/");
-}
-
-export async function updateSiteSetting(formData: FormData) {
-  const { admin, userId } = await adminContext(); const key = text(formData, "key"); const type = text(formData, "type"); const raw = text(formData, "value");
-  const value = type === "boolean" ? raw === "true" : type === "number" ? Number(raw) : raw;
-  const { error } = await admin.from("site_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key); if (error) throw error;
-  await audit(admin, userId, "update", "site_setting", key, { value }); revalidatePath("/admin/settings"); revalidatePath("/");
-}
-
-export async function upsertOfficialSource(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name");
-  const payload = { name, slug: text(formData, "slug") || slugify(name), url: text(formData, "url"), category: text(formData, "category") || "General", description: text(formData, "description") || null, icon: text(formData, "icon") || null, region_id: text(formData, "region_id") || null, enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100), updated_at: new Date().toISOString() };
-  const query = id ? admin.from("official_sources").update(payload).eq("id", id) : admin.from("official_sources").insert(payload); const { error } = await query; if (error) throw error;
-  await audit(admin, userId, id ? "update" : "create", "official_source", id || payload.slug); revalidatePath("/admin/official"); revalidatePath("/official");
-}
-
-export async function deleteOfficialSource(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("official_sources").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "official_source", id); revalidatePath("/admin/official"); revalidatePath("/official");
-}
-
-export async function upsertVideoChannel(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id");
-  const payload = { name: text(formData, "name"), channel_id: text(formData, "channel_id") || null, channel_url: text(formData, "channel_url"), feed_url: text(formData, "feed_url") || null, language_code: text(formData, "language_code") || "en", region_id: text(formData, "region_id") || null, enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100), updated_at: new Date().toISOString() };
-  const query = id ? admin.from("video_channels").update(payload).eq("id", id) : admin.from("video_channels").insert(payload); const { error } = await query; if (error) throw error;
-  await audit(admin, userId, id ? "update" : "create", "video_channel", id || payload.name); revalidatePath("/admin/videos"); revalidatePath("/videos");
-}
-
-export async function deleteVideoChannel(formData: FormData) {
-  const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("video_channels").delete().eq("id", id); if (error) throw error;
-  await audit(admin, userId, "delete", "video_channel", id); revalidatePath("/admin/videos"); revalidatePath("/videos");
-}
+export async function upsertCategory(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name"); const payload = { name, slug: text(formData, "slug") || slugify(name), description: text(formData, "description") || null, sort_order: num(formData, "sort_order", 100) }; const query = id ? admin.from("categories").update(payload).eq("id", id) : admin.from("categories").insert(payload); const { error } = await query; if (error) throw error; await audit(admin, userId, id ? "update" : "create", "category", id || payload.slug); revalidatePath("/admin/categories"); revalidatePath("/categories"); }
+export async function deleteCategory(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("categories").delete().eq("id", id); if (error) throw error; await audit(admin, userId, "delete", "category", id); revalidatePath("/admin/categories"); revalidatePath("/categories"); }
+export async function updateRegion(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("regions").update({ name: text(formData, "name"), slug: text(formData, "slug"), is_active: bool(formData, "is_active") }).eq("id", id); if (error) throw error; await audit(admin, userId, "update", "region", id); revalidatePath("/admin/regions"); revalidatePath("/"); }
+export async function upsertTopic(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name"); const payload = { name, slug: text(formData, "slug") || slugify(name), description: text(formData, "description") || null, trending_score: num(formData, "trending_score", 0) }; const query = id ? admin.from("topics").update(payload).eq("id", id) : admin.from("topics").insert(payload); const { error } = await query; if (error) throw error; await audit(admin, userId, id ? "update" : "create", "topic", id || payload.slug); revalidatePath("/admin/topics"); revalidatePath("/topics"); }
+export async function deleteTopic(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("topics").delete().eq("id", id); if (error) throw error; await audit(admin, userId, "delete", "topic", id); revalidatePath("/admin/topics"); revalidatePath("/topics"); }
+export async function updateHomepageSection(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("homepage_sections").update({ enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100) }).eq("id", id); if (error) throw error; await audit(admin, userId, "update", "homepage_section", id); revalidatePath("/admin/homepage"); revalidatePath("/"); }
+export async function updateSiteSetting(formData: FormData) { const { admin, userId } = await adminContext(); const key = text(formData, "key"); const type = text(formData, "type"); const raw = text(formData, "value"); const value = type === "boolean" ? raw === "true" : type === "number" ? Number(raw) : raw; const { error } = await admin.from("site_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key); if (error) throw error; await audit(admin, userId, "update", "site_setting", key, { value }); revalidatePath("/admin/settings"); revalidatePath("/"); }
+export async function upsertOfficialSource(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const name = text(formData, "name"); const payload = { name, slug: text(formData, "slug") || slugify(name), url: text(formData, "url"), category: text(formData, "category") || "General", description: text(formData, "description") || null, icon: text(formData, "icon") || null, region_id: text(formData, "region_id") || null, enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100), updated_at: new Date().toISOString() }; const query = id ? admin.from("official_sources").update(payload).eq("id", id) : admin.from("official_sources").insert(payload); const { error } = await query; if (error) throw error; await audit(admin, userId, id ? "update" : "create", "official_source", id || payload.slug); revalidatePath("/admin/official"); revalidatePath("/official"); }
+export async function deleteOfficialSource(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("official_sources").delete().eq("id", id); if (error) throw error; await audit(admin, userId, "delete", "official_source", id); revalidatePath("/admin/official"); revalidatePath("/official"); }
+export async function upsertVideoChannel(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const payload = { name: text(formData, "name"), channel_id: text(formData, "channel_id") || null, channel_url: text(formData, "channel_url"), feed_url: text(formData, "feed_url") || null, language_code: text(formData, "language_code") || "en", region_id: text(formData, "region_id") || null, enabled: bool(formData, "enabled"), sort_order: num(formData, "sort_order", 100), updated_at: new Date().toISOString() }; const query = id ? admin.from("video_channels").update(payload).eq("id", id) : admin.from("video_channels").insert(payload); const { error } = await query; if (error) throw error; await audit(admin, userId, id ? "update" : "create", "video_channel", id || payload.name); revalidatePath("/admin/videos"); revalidatePath("/videos"); }
+export async function deleteVideoChannel(formData: FormData) { const { admin, userId } = await adminContext(); const id = text(formData, "id"); const { error } = await admin.from("video_channels").delete().eq("id", id); if (error) throw error; await audit(admin, userId, "delete", "video_channel", id); revalidatePath("/admin/videos"); revalidatePath("/videos"); }
