@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "./actions";
 import { logout } from "../login/actions";
 
+export const dynamic = "force-dynamic";
+
 const NAV = [
   ["Dashboard","/admin"],["Articles","/admin/articles"],["Sources","/admin/sources"],["Categories","/admin/categories"],["Topics","/admin/topics"],["Regions","/admin/regions"],["Homepage","/admin/homepage"],["Official","/admin/official"],["Videos","/admin/videos"],["Users","/admin/users"],["Ingestion","/admin/ingestion"],["Settings","/admin/settings"],["Audit","/admin/audit"]
 ] as const;
