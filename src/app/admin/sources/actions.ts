@@ -33,7 +33,8 @@ export async function createSource(formData: FormData) {
     source_type: "rss",
     enabled: true,
     auto_publish: autoPublish,
-    ai_summary_enabled: true,
+    ai_summary_enabled: false,
+    ai_classification_enabled: false,
     fetch_interval_minutes: interval,
   }).select("id").single();
   if (error) redirect(`/admin/sources/new?error=${encodeURIComponent(error.code ?? "db")}`);
@@ -42,5 +43,7 @@ export async function createSource(formData: FormData) {
   if (region) await admin.from("source_regions").insert({ source_id: source.id, region_id: region.id, is_primary: true });
 
   revalidatePath("/admin/sources");
+  revalidatePath("/sources");
+  revalidatePath("/");
   redirect("/admin/sources");
 }
