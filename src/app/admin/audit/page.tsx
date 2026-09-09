@@ -1,0 +1,6 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export default async function AdminAudit() {
+  const admin = createAdminClient(); const { data } = await admin.from("admin_audit_log").select("id,user_id,action,entity_type,entity_id,details,created_at").order("created_at", { ascending: false }).limit(300);
+  return <main className="mx-auto max-w-7xl px-5 py-8"><h1 className="text-3xl font-black">Admin audit log</h1><p className="mt-2 text-gray-600">Recent control-panel changes for accountability and troubleshooting.</p><div className="mt-6 overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[900px] text-sm"><thead><tr className="border-b bg-gray-50 text-left text-xs uppercase text-gray-400"><th className="p-3">Time</th><th>Action</th><th>Entity</th><th>ID</th><th>User</th><th>Details</th></tr></thead><tbody>{(data??[]).map((r:any)=><tr key={r.id} className="border-b last:border-0"><td className="p-3">{new Date(r.created_at).toLocaleString("en-AU")}</td><td className="font-bold">{r.action}</td><td>{r.entity_type}</td><td className="max-w-[180px] truncate">{r.entity_id??"—"}</td><td className="max-w-[180px] truncate">{r.user_id??"—"}</td><td className="max-w-[360px] truncate font-mono text-xs">{JSON.stringify(r.details)}</td></tr>)}</tbody></table></div></main>;
+}
