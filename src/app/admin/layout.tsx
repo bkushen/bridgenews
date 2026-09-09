@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminNavLink } from "@/components/admin/admin-nav-link";
+import { AdminThemeToggle } from "@/components/admin/admin-theme-toggle";
 import { requireAdmin } from "./actions";
 import { logout } from "../login/actions";
 
@@ -21,14 +22,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await requireAdmin();
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="sticky top-0 z-[70] border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur lg:hidden">
+    <div data-admin-shell data-admin-theme="light" className="admin-theme-shell min-h-screen bg-slate-100 text-slate-950">
+      <header className="admin-mobile-header sticky top-0 z-[70] border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           <Link href="/admin" className="mr-auto flex items-center gap-2 font-black">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-xs text-white shadow-sm">BN</span>
             <div><span className="block leading-tight">BridgeNews</span><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Admin</span></div>
           </Link>
-          <Link href="/" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm">View site ↗</Link>
+          <AdminThemeToggle compact />
+          <Link href="/" className="admin-secondary-action rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm">View site ↗</Link>
         </div>
         <nav className="flex gap-2 overflow-x-auto border-t border-slate-100 px-3 py-2.5">
           {MOBILE_NAV.map(([label, href, icon]) => <AdminNavLink key={href} href={href} label={label} icon={icon} mobile />)}
@@ -36,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </header>
 
       <div className="mx-auto grid min-h-screen max-w-[1720px] lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="sticky top-0 hidden h-screen overflow-hidden bg-slate-950 text-white shadow-2xl lg:flex lg:flex-col">
+        <aside className="admin-sidebar sticky top-0 hidden h-screen overflow-hidden bg-slate-950 text-white shadow-2xl lg:flex lg:flex-col">
           <div className="border-b border-white/8 px-5 py-5">
             <Link href="/admin" className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-black text-white shadow-lg shadow-indigo-950/30">BN</span>
@@ -61,6 +63,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <p className="mt-1 text-sm font-black text-slate-100">BridgeNews Admin</p>
               <p className="mt-1 text-xs leading-5 text-slate-400">Manage content, publishing and system health.</p>
             </div>
+            <div className="mb-2"><AdminThemeToggle /></div>
             <Link href="/" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/7 hover:text-white">
               <span>Open website</span><span>↗</span>
             </Link>
@@ -70,7 +73,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </aside>
 
-        <div className="min-w-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.08),transparent_28rem)]">{children}</div>
+        <div className="admin-content min-w-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.08),transparent_28rem)]">{children}</div>
       </div>
     </div>
   );
