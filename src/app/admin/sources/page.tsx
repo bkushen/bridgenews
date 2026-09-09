@@ -1,10 +1,40 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteSource, updateSource } from "../control-actions";
+import { setSourceRegion } from "./relationships";
 
 export default async function SourcesPage() {
-  const admin=createAdminClient(); const { data }=await admin.from("sources").select("id,name,slug,website_url,feed_url,source_type,logo_url,enabled,auto_publish,default_language_code,fetch_interval_minutes,max_items_per_fetch,last_success_at,last_error_at,last_error_message,consecutive_failures").order("name");
-  return <main className="mx-auto max-w-7xl px-5 py-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-black">Sources</h1><p className="mt-2 text-gray-600">Edit publisher identity, feed, logo, language, schedule and publication mode.</p></div><Link href="/admin/sources/new" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">+ Add source</Link></div>
-    <div className="mt-6 space-y-3">{(data??[]).map((s:any)=><form action={updateSource} key={s.id} className="rounded-xl border bg-white p-4"><input type="hidden" name="id" value={s.id}/><div className="grid gap-2 lg:grid-cols-[72px_1fr_1fr_1fr]"><div className="flex items-start justify-center">{s.logo_url?<img src={s.logo_url} alt="" className="h-12 w-12 rounded-lg border object-contain p-1"/>:<div className="grid h-12 w-12 place-items-center rounded-lg bg-gray-100 font-black">{s.name.slice(0,2)}</div>}</div><input name="name" defaultValue={s.name} className="rounded-lg border px-3 py-2 font-bold"/><input name="website_url" defaultValue={s.website_url} className="rounded-lg border px-3 py-2"/><input name="feed_url" defaultValue={s.feed_url??""} className="rounded-lg border px-3 py-2"/><div/><input name="logo_url" defaultValue={s.logo_url??""} placeholder="Logo URL" className="rounded-lg border px-3 py-2"/><select name="default_language_code" defaultValue={s.default_language_code} className="rounded-lg border px-3 py-2"><option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option></select><div className="grid grid-cols-2 gap-2"><input name="fetch_interval_minutes" type="number" defaultValue={s.fetch_interval_minutes} className="rounded-lg border px-3 py-2" title="Fetch interval minutes"/><input name="max_items_per_fetch" type="number" defaultValue={s.max_items_per_fetch} className="rounded-lg border px-3 py-2" title="Max items per fetch"/></div></div><div className="mt-3 flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="enabled" defaultChecked={s.enabled}/>Enabled</label><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="auto_publish" defaultChecked={s.auto_publish}/>Auto publish</label><span className={`rounded-full px-3 py-1 text-xs font-bold ${s.last_error_message?"bg-red-50 text-red-700":"bg-emerald-50 text-emerald-700"}`}>{s.last_error_message?`Error · ${s.consecutive_failures} failures`:"Healthy"}</span><span className="text-xs text-gray-500">Last success: {s.last_success_at?new Date(s.last_success_at).toLocaleString("en-AU"):"Never"}</span><button className="ml-auto rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">Save</button><button formAction={deleteSource} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600">Delete</button></div>{s.last_error_message?<p className="mt-2 text-xs text-red-600">{s.last_error_message}</p>:null}</form>)}</div>
+  const admin = createAdminClient();
+  const [{ data: sources }, { data: regions }, { data: sourceRegions }] = await Promise.all([
+    admin.from("sources").select("id,name,slug,website_url,feed_url,source_type,logo_url,enabled,auto_publish,default_language_code,fetch_interval_minutes,max_items_per_fetch,last_success_at,last_error_at,last_error_message,consecutive_failures").order("name"),
+    admin.from("regions").select("id,name,slug,is_active").order("name"),
+    admin.from("source_regions").select("source_id,region_id,is_primary"),
+  ]);
+  const primaryRegion = new Map((sourceRegions ?? []).filter((row: any) => row.is_primary).map((row: any) => [row.source_id, row.region_id]));
+
+  return <main className="mx-auto max-w-7xl px-5 py-8">
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-black">Sources</h1><p className="mt-2 text-gray-600">Edit publisher identity, feed, logo, region, language, schedule and publication mode.</p></div><Link href="/admin/sources/new" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">+ Add source</Link></div>
+    <div className="mt-6 space-y-3">{(sources ?? []).map((s: any) => <div key={s.id} className="rounded-xl border bg-white p-4">
+      <form action={updateSource}>
+        <input type="hidden" name="id" value={s.id}/>
+        <div className="grid gap-2 lg:grid-cols-[72px_1fr_1fr_1fr]">
+          <div className="flex items-start justify-center">{s.logo_url ? <img src={s.logo_url} alt="" className="h-12 w-12 rounded-lg border object-contain p-1"/> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-gray-100 font-black">{s.name.slice(0,2)}</div>}</div>
+          <input name="name" defaultValue={s.name} className="rounded-lg border px-3 py-2 font-bold"/>
+          <input name="website_url" defaultValue={s.website_url} className="rounded-lg border px-3 py-2"/>
+          <input name="feed_url" defaultValue={s.feed_url ?? ""} className="rounded-lg border px-3 py-2"/>
+          <div/>
+          <input name="logo_url" defaultValue={s.logo_url ?? ""} placeholder="Logo URL" className="rounded-lg border px-3 py-2"/>
+          <select name="default_language_code" defaultValue={s.default_language_code} className="rounded-lg border px-3 py-2"><option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option></select>
+          <div className="grid grid-cols-2 gap-2"><input name="fetch_interval_minutes" type="number" defaultValue={s.fetch_interval_minutes} className="rounded-lg border px-3 py-2" title="Fetch interval minutes"/><input name="max_items_per_fetch" type="number" defaultValue={s.max_items_per_fetch} className="rounded-lg border px-3 py-2" title="Max items per fetch"/></div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="enabled" defaultChecked={s.enabled}/>Enabled</label><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="auto_publish" defaultChecked={s.auto_publish}/>Auto publish</label><span className={`rounded-full px-3 py-1 text-xs font-bold ${s.last_error_message ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{s.last_error_message ? `Error · ${s.consecutive_failures} failures` : "Healthy"}</span><span className="text-xs text-gray-500">Last success: {s.last_success_at ? new Date(s.last_success_at).toLocaleString("en-AU") : "Never"}</span><button className="ml-auto rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">Save details</button><button formAction={deleteSource} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600">Delete</button></div>
+        {s.last_error_message ? <p className="mt-2 text-xs text-red-600">{s.last_error_message}</p> : null}
+      </form>
+      <form action={setSourceRegion} className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+        <input type="hidden" name="source_id" value={s.id}/><span className="text-xs font-black uppercase tracking-wide text-gray-400">Primary region</span>
+        <select name="region_id" defaultValue={primaryRegion.get(s.id) ?? ""} className="min-w-52 rounded-lg border px-3 py-2 text-sm"><option value="" disabled>Choose region</option>{(regions ?? []).map((r: any) => <option key={r.id} value={r.id}>{r.name}{r.is_active ? "" : " (inactive)"}</option>)}</select>
+        <button className="rounded-lg border px-3 py-2 text-sm font-bold hover:bg-gray-50">Save region</button>
+      </form>
+    </div>)}</div>
   </main>;
 }
