@@ -13,6 +13,7 @@ const NAV = [
   ["Map", "/map"],
   ["Archive", "/archive"],
   ["Official", "/official"],
+  ["Following", "/following"],
   ["Saved", "/saved"],
 ] as const;
 
@@ -27,6 +28,7 @@ export function SiteHeader() {
         <form action="/search" method="get" className="hidden md:flex">
           <input name="q" aria-label="Search news" placeholder="Search news" className="w-44 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-xs outline-none focus:border-gray-400 focus:bg-white xl:w-56" />
         </form>
+        <Link href="/following" className="hidden rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-800 sm:inline-flex">Following</Link>
         <Link href="/login" className="rounded-full bg-gray-950 px-4 py-2 text-xs font-bold text-white">Sign in</Link>
       </div>
       <div className="border-t border-gray-100">
