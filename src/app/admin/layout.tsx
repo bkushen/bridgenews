@@ -4,12 +4,17 @@ import { logout } from "../login/actions";
 
 export const dynamic = "force-dynamic";
 
-const GROUPS = [
+type NavItem = readonly [label: string, href: string, icon: string];
+type NavGroup = { label: string; items: readonly NavItem[] };
+
+const GROUPS: readonly NavGroup[] = [
   { label: "Overview", items: [["Dashboard","/admin","⌂"]] },
   { label: "Content", items: [["Articles","/admin/articles","▤"],["Categories","/admin/categories","#"],["Topics","/admin/topics","◎"],["Homepage","/admin/homepage","⌘"]] },
   { label: "Publishing", items: [["Sources","/admin/sources","◉"],["Regions","/admin/regions","◆"],["Official","/admin/official","✓"],["Videos","/admin/videos","▶"]] },
   { label: "Operations", items: [["Ingestion","/admin/ingestion","↻"],["Users","/admin/users","♙"],["Settings","/admin/settings","⚙"],["Audit log","/admin/audit","≡"]] },
-] as const;
+];
+
+const MOBILE_NAV: readonly NavItem[] = GROUPS.flatMap((group) => [...group.items]);
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
@@ -19,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin" className="mr-auto flex items-center gap-2 font-black"><span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-950 text-xs text-white">BN</span><span>Admin</span></Link>
         <Link href="/" className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View site ↗</Link>
       </div>
-      <nav className="flex gap-2 overflow-x-auto border-t border-gray-100 px-3 py-2">{GROUPS.flatMap((group)=>group.items).map(([label,href,icon])=><Link key={href} href={href} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-200"><span>{icon}</span>{label}</Link>)}</nav>
+      <nav className="flex gap-2 overflow-x-auto border-t border-gray-100 px-3 py-2">{MOBILE_NAV.map(([label,href,icon])=><Link key={href} href={href} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-200"><span>{icon}</span>{label}</Link>)}</nav>
     </header>
 
     <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[250px_minmax(0,1fr)]">
