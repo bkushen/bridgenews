@@ -2,6 +2,7 @@
 
 type ConfirmSubmitButtonProps = {
   label?: string;
+  pendingLabel?: string;
   confirmMessage?: string;
   className?: string;
   formAction?: (formData: FormData) => void | Promise<void>;
