@@ -1,0 +1,8 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { updateSiteSetting } from "../control-actions";
+
+function inputType(value: unknown) { return typeof value === "boolean" ? "boolean" : typeof value === "number" ? "number" : "string"; }
+export default async function AdminSettings() {
+  const admin = createAdminClient(); const { data } = await admin.from("site_settings").select("key,group_name,label,description,value").order("group_name").order("label");
+  return <main className="mx-auto max-w-5xl px-5 py-8"><h1 className="text-3xl font-black">Site settings</h1><p className="mt-2 text-gray-600">Global branding and homepage/system switches.</p><div className="mt-6 space-y-3">{(data ?? []).map((s:any) => { const type = inputType(s.value); return <form action={updateSiteSetting} key={s.key} className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-[1fr_320px_auto]"><input type="hidden" name="key" value={s.key}/><input type="hidden" name="type" value={type}/><div><div className="font-black">{s.label}</div><div className="text-xs uppercase text-gray-400">{s.group_name} · {s.key}</div>{s.description ? <p className="mt-1 text-sm text-gray-500">{s.description}</p>:null}</div>{type === "boolean" ? <select name="value" defaultValue={String(s.value)} className="rounded-lg border px-3 py-2"><option value="true">Enabled / true</option><option value="false">Disabled / false</option></select> : <input name="value" defaultValue={String(s.value ?? "")} type={type === "number" ? "number" : "text"} className="rounded-lg border px-3 py-2"/>}<button className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">Save</button></form>; })}</div></main>;
+}
