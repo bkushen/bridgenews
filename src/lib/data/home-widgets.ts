@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/server";
+
 export type WeatherCardData = {
   city: string;
   emoji: string;
@@ -7,6 +9,7 @@ export type WeatherCardData = {
   windSpeed: number | null;
   high: number | null;
   low: number | null;
+  timeZone: string;
 };
 
 export type ExchangeStripData = {
@@ -15,6 +18,13 @@ export type ExchangeStripData = {
   audToUsd: number | null;
   updatedAt: string | null;
 };
+
+type WeatherLocation = { city: string; latitude: number; longitude: number; timezone: string };
+
+const DEFAULT_WEATHER: [WeatherLocation, WeatherLocation] = [
+  { city: "Colombo", latitude: 6.9271, longitude: 79.8612, timezone: "Asia/Colombo" },
+  { city: "Melbourne", latitude: -37.8136, longitude: 144.9631, timezone: "Australia/Melbourne" },
+];
 
 function weatherEmoji(code: number | null) {
   if (code == null) return "🌤️";
@@ -52,17 +62,44 @@ async function getWeather(city: string, latitude: number, longitude: number, tim
       windSpeed: typeof data?.current?.wind_speed_10m === "number" ? data.current.wind_speed_10m : null,
       high: typeof data?.daily?.temperature_2m_max?.[0] === "number" ? data.daily.temperature_2m_max[0] : null,
       low: typeof data?.daily?.temperature_2m_min?.[0] === "number" ? data.daily.temperature_2m_min[0] : null,
+      timeZone: timezone,
     };
   } catch {
-    return { city, emoji: "🌤️", temperature: null, apparentTemperature: null, weatherCode: null, windSpeed: null, high: null, low: null };
+    return { city, emoji: "🌤️", temperature: null, apparentTemperature: null, weatherCode: null, windSpeed: null, high: null, low: null, timeZone: timezone };
   }
 }
 
+function stringSetting(settings: Record<string, unknown>, key: string, fallback: string) {
+  const value = settings[key];
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function numberSetting(settings: Record<string, unknown>, key: string, fallback: number) {
+  const value = Number(settings[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 export async function getHomepageWeather() {
-  return Promise.all([
-    getWeather("Colombo", 6.9271, 79.8612, "Asia/Colombo"),
-    getWeather("Melbourne", -37.8136, 144.9631, "Australia/Melbourne"),
-  ]);
+  let settings: Record<string, unknown> = {};
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("site_settings").select("key,value").like("key", "weather_%");
+    settings = Object.fromEntries((data ?? []).map((row: any) => [row.key, row.value]));
+  } catch {
+    settings = {};
+  }
+
+  const locations: [WeatherLocation, WeatherLocation] = [1, 2].map((slot) => {
+    const fallback = DEFAULT_WEATHER[slot - 1];
+    return {
+      city: stringSetting(settings, `weather_city_${slot}_name`, fallback.city),
+      latitude: numberSetting(settings, `weather_city_${slot}_latitude`, fallback.latitude),
+      longitude: numberSetting(settings, `weather_city_${slot}_longitude`, fallback.longitude),
+      timezone: stringSetting(settings, `weather_city_${slot}_timezone`, fallback.timezone),
+    };
+  }) as [WeatherLocation, WeatherLocation];
+
+  return Promise.all(locations.map((location) => getWeather(location.city, location.latitude, location.longitude, location.timezone)));
 }
 
 export async function getExchangeStrip(): Promise<ExchangeStripData> {
