@@ -31,6 +31,34 @@ const DISTRICTS = [
 export type DistrictName = (typeof DISTRICTS)[number];
 export type DistrictGroup = { name: DistrictName; slug: string; count: number; stories: PortalStory[] };
 
+const DISTRICT_ALIASES: Record<DistrictName, string[]> = {
+  Ampara: ["ampara", "amparai", "අම්පාර", "அம்பாறை"],
+  Anuradhapura: ["anuradhapura", "අනුරාධපුර", "அனுராதபுரம்"],
+  Badulla: ["badulla", "බදුල්ල", "பதுளை"],
+  Batticaloa: ["batticaloa", "madakalapuwa", "මඩකලපුව", "மட்டக்களப்பு"],
+  Colombo: ["colombo", "kolamba", "කොළඹ", "கொழும்பு"],
+  Galle: ["galle", "ගාල්ල", "காலி"],
+  Gampaha: ["gampaha", "ගම්පහ", "கம்பஹா"],
+  Hambantota: ["hambantota", "හම්බන්තොට", "அம்பாந்தோட்டை"],
+  Jaffna: ["jaffna", "yapanaya", "යාපනය", "யாழ்ப்பாணம்"],
+  Kalutara: ["kalutara", "කළුතර", "களுத்துறை"],
+  Kandy: ["kandy", "mahanuwara", "මහනුවර", "கண்டி"],
+  Kegalle: ["kegalle", "kegalla", "කෑගල්ල", "கேகாலை"],
+  Kilinochchi: ["kilinochchi", "kilinochchi", "කිලිනොච්චි", "கிளிநொச்சி"],
+  Kurunegala: ["kurunegala", "කුරුණෑගල", "குருநாகல்"],
+  Mannar: ["mannar", "මන්නාරම", "மன்னார்"],
+  Matale: ["matale", "මාතලේ", "மாத்தளை"],
+  Matara: ["matara", "මාතර", "மாத்தறை"],
+  Monaragala: ["monaragala", "moneragala", "මොණරාගල", "மொணராகலை"],
+  Mullaitivu: ["mullaitivu", "mulathivu", "මුලතිව්", "முல்லைத்தீவு"],
+  "Nuwara Eliya": ["nuwara eliya", "nuwaraeliya", "nuwara-eliya", "නුවරඑළිය", "நுவரெலியா"],
+  Polonnaruwa: ["polonnaruwa", "පොළොන්නරුව", "பொலன்னறுவை"],
+  Puttalam: ["puttalam", "පුත්තලම", "புத்தளம்"],
+  Ratnapura: ["ratnapura", "rathnapura", "රත්නපුර", "இரத்தினபுரி"],
+  Trincomalee: ["trincomalee", "trinko", "ත්‍රිකුණාමලය", "திருகோணமலை"],
+  Vavuniya: ["vavuniya", "වවුනියාව", "வவுனியா"],
+};
+
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -199,10 +227,9 @@ export async function getDistrictGroups(): Promise<DistrictGroup[]> {
   const stories = await getPortalStories({ limit: 200 });
   const groups: DistrictGroup[] = DISTRICTS.map((name) => ({ name, slug: slugify(name), count: 0, stories: [] }));
   for (const story of stories) {
-    const haystack = `${story.title} ${story.summary}`.toLocaleLowerCase();
+    const haystack = `${story.title} ${story.summary}`.normalize("NFKC").toLocaleLowerCase();
     for (const group of groups) {
-      const aliases = group.name === "Nuwara Eliya" ? ["nuwara eliya", "nuwaraeliya"] : [group.name.toLowerCase()];
-      if (aliases.some((alias) => haystack.includes(alias))) {
+      if (DISTRICT_ALIASES[group.name].some((alias) => haystack.includes(alias.toLocaleLowerCase()))) {
         group.stories.push(story);
         group.count += 1;
       }
