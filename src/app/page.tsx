@@ -92,7 +92,6 @@ export default async function Home() {
   const heroStories = (sriLanka.length ? sriLanka : allLatest).slice(0, 5) as StoryWithImage[];
   const inNews = allLatest.slice(0, 7) as StoryWithImage[];
   const feed = latestTopics.slice(0, 14);
-  const photoStories = allLatest.filter((story) => (story as StoryWithImage).imageUrl).slice(0, 10) as StoryWithImage[];
   const sourceCount = new Set(allLatest.map((story) => story.source)).size;
   const multiSourceTopics = latestTopics.filter((topic) => topic.sourceCount > 1).length;
   const colombo = weather[0];
@@ -129,8 +128,6 @@ export default async function Home() {
       <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatWidget label="Published" value={allLatest.length} sub="recent stories loaded" /><StatWidget label="Publishers" value={sourceCount} sub="different source feeds" /><StatWidget label="Topics" value={latestTopics.length} sub="grouped story topics" /><StatWidget label="Multi-source" value={multiSourceTopics} sub="topics with cross-source coverage" /></section>
 
       <SourceRail sources={sources} />
-
-      {photoStories.length ? <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"><SectionTitle eyebrow="Visual scan" title="News in Photos" /><div className="mt-4 flex snap-x gap-3 overflow-x-auto pb-2">{photoStories.map((story) => <Link key={story.slug} href={`/story/${story.slug}`} className="group relative min-h-[220px] min-w-[280px] snap-start overflow-hidden rounded-2xl bg-gray-900 sm:min-w-[340px]"><img src={story.imageUrl ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-4 text-white"><p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{story.source}</p><h3 className="mt-1 line-clamp-2 text-lg font-black leading-tight">{story.title}</h3></div></Link>)}</div></section> : null}
 
       <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><div className="shrink-0"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Trending topics</p><p className="text-sm font-black">Explore what is moving</p></div><div className="flex flex-wrap gap-2 lg:border-l lg:border-gray-200 lg:pl-4">{topCategories.map((category) => <Link key={category.slug} href={`/categories/${category.slug}`} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-black hover:border-gray-400 hover:bg-white">#{category.name} <span className="ml-1 text-gray-400">{category.articleCount}</span></Link>)}</div></div></section>
 
