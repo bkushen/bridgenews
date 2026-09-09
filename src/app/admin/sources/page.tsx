@@ -1,37 +1,10 @@
 import Link from "next/link";
-import { createAdminClient, hasSupabaseServerConfig } from "@/lib/supabase/admin";
-import { adminSources, type AdminSource } from "@/lib/admin/mock-sources";
-
-async function getSources(): Promise<AdminSource[]> {
-  if (!hasSupabaseServerConfig()) return adminSources;
-  const admin = createAdminClient();
-  const { data, error } = await admin.from("sources").select("id,name,source_type,enabled,auto_publish,fetch_interval_minutes,last_fetched_at,last_error_message,consecutive_failures").order("name");
-  if (error || !data) return adminSources;
-  return data.map((s) => ({
-    name: s.name,
-    region: "International",
-    type: s.source_type === "api" ? "API" : "RSS",
-    status: s.enabled && !s.last_error_message && (s.consecutive_failures ?? 0) === 0 ? "Healthy" : "Needs review",
-    autoPublish: Boolean(s.auto_publish),
-    interval: `${s.fetch_interval_minutes} min`,
-    lastFetch: s.last_fetched_at ? new Date(s.last_fetched_at).toLocaleString("en-AU") : "Never",
-    newItems: 0,
-    duplicates: 0,
-  }));
-}
+import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteSource, updateSource } from "../control-actions";
 
 export default async function SourcesPage() {
-  const sources = await getSources();
-  const live = hasSupabaseServerConfig();
-  return (
-    <main className="mx-auto max-w-7xl px-5 py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Admin / Sources</p><h1 className="mt-2 text-4xl font-black">Content sources</h1><p className="mt-3 max-w-2xl text-gray-600">Manage Sri Lankan, Australian and international RSS/API sources, ingestion health and publication mode.</p></div>
-        <Link href="/admin/sources/new" className="rounded-xl bg-gray-950 px-5 py-3 text-sm font-bold text-white">+ Add source</Link>
-      </div>
-      {!live && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">Preview data is shown until Supabase environment variables are configured.</div>}
-      <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--border)] bg-white"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[var(--border)] bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr><th className="px-5 py-4">Source</th><th className="px-5 py-4">Region</th><th className="px-5 py-4">Health</th><th className="px-5 py-4">Publish</th><th className="px-5 py-4">Schedule</th><th className="px-5 py-4">Last fetch</th><th className="px-5 py-4">Result</th></tr></thead><tbody>{sources.map((source) => <tr key={source.name} className="border-b border-[var(--border)] last:border-0"><td className="px-5 py-5"><div className="font-bold">{source.name}</div><div className="mt-1 text-xs text-gray-500">{source.type}</div></td><td className="px-5 py-5">{source.region}</td><td className="px-5 py-5"><span className={`rounded-full px-3 py-1 text-xs font-bold ${source.status === "Healthy" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{source.status}</span></td><td className="px-5 py-5"><span className="font-semibold">{source.autoPublish ? "Automatic" : "Review first"}</span></td><td className="px-5 py-5">Every {source.interval}</td><td className="px-5 py-5">{source.lastFetch}</td><td className="px-5 py-5"><span className="font-bold">{source.newItems}</span> new · {source.duplicates} dupes</td></tr>)}</tbody></table></div></div>
-      <section className="mt-8 grid gap-4 lg:grid-cols-3"><div className="rounded-2xl border border-[var(--border)] bg-white p-6"><div className="text-sm font-bold text-gray-500">DEFAULT SAFETY</div><h2 className="mt-2 text-xl font-black">Review first</h2><p className="mt-2 text-sm leading-6 text-gray-600">New sources default to review mode. Turn on automatic publishing only after feed quality and attribution are verified.</p></div><div className="rounded-2xl border border-[var(--border)] bg-white p-6"><div className="text-sm font-bold text-gray-500">DUPLICATES</div><h2 className="mt-2 text-xl font-black">Idempotent ingestion</h2><p className="mt-2 text-sm leading-6 text-gray-600">Canonical URLs and source item IDs prevent the same feed entry from being published twice.</p></div><div className="rounded-2xl border border-[var(--border)] bg-white p-6"><div className="text-sm font-bold text-gray-500">NEXT LAYER</div><h2 className="mt-2 text-xl font-black">AI processing</h2><p className="mt-2 text-sm leading-6 text-gray-600">The next processor will generate summaries, detect regions/topics and cluster different publishers covering the same story.</p></div></section>
-    </main>
-  );
+  const admin=createAdminClient(); const { data }=await admin.from("sources").select("id,name,slug,website_url,feed_url,source_type,logo_url,enabled,auto_publish,default_language_code,fetch_interval_minutes,max_items_per_fetch,last_success_at,last_error_at,last_error_message,consecutive_failures").order("name");
+  return <main className="mx-auto max-w-7xl px-5 py-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-black">Sources</h1><p className="mt-2 text-gray-600">Edit publisher identity, feed, logo, language, schedule and publication mode.</p></div><Link href="/admin/sources/new" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">+ Add source</Link></div>
+    <div className="mt-6 space-y-3">{(data??[]).map((s:any)=><form action={updateSource} key={s.id} className="rounded-xl border bg-white p-4"><input type="hidden" name="id" value={s.id}/><div className="grid gap-2 lg:grid-cols-[72px_1fr_1fr_1fr]"><div className="flex items-start justify-center">{s.logo_url?<img src={s.logo_url} alt="" className="h-12 w-12 rounded-lg border object-contain p-1"/>:<div className="grid h-12 w-12 place-items-center rounded-lg bg-gray-100 font-black">{s.name.slice(0,2)}</div>}</div><input name="name" defaultValue={s.name} className="rounded-lg border px-3 py-2 font-bold"/><input name="website_url" defaultValue={s.website_url} className="rounded-lg border px-3 py-2"/><input name="feed_url" defaultValue={s.feed_url??""} className="rounded-lg border px-3 py-2"/><div/><input name="logo_url" defaultValue={s.logo_url??""} placeholder="Logo URL" className="rounded-lg border px-3 py-2"/><select name="default_language_code" defaultValue={s.default_language_code} className="rounded-lg border px-3 py-2"><option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option></select><div className="grid grid-cols-2 gap-2"><input name="fetch_interval_minutes" type="number" defaultValue={s.fetch_interval_minutes} className="rounded-lg border px-3 py-2" title="Fetch interval minutes"/><input name="max_items_per_fetch" type="number" defaultValue={s.max_items_per_fetch} className="rounded-lg border px-3 py-2" title="Max items per fetch"/></div></div><div className="mt-3 flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="enabled" defaultChecked={s.enabled}/>Enabled</label><label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold"><input type="checkbox" name="auto_publish" defaultChecked={s.auto_publish}/>Auto publish</label><span className={`rounded-full px-3 py-1 text-xs font-bold ${s.last_error_message?"bg-red-50 text-red-700":"bg-emerald-50 text-emerald-700"}`}>{s.last_error_message?`Error · ${s.consecutive_failures} failures`:"Healthy"}</span><span className="text-xs text-gray-500">Last success: {s.last_success_at?new Date(s.last_success_at).toLocaleString("en-AU"):"Never"}</span><button className="ml-auto rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">Save</button><button formAction={deleteSource} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600">Delete</button></div>{s.last_error_message?<p className="mt-2 text-xs text-red-600">{s.last_error_message}</p>:null}</form>)}</div>
+  </main>;
 }
