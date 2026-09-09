@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { StoryCard } from "@/components/story-card";
 import { getTopicBySlug, getTopicStories } from "@/lib/data/topics";
+import { followTopic } from "@/app/following/actions";
 
 export default async function TopicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -9,11 +10,12 @@ export default async function TopicPage({ params }: { params: Promise<{ slug: st
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10">
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Topic</p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-4xl font-black tracking-tight md:text-5xl">{topic.name}</h1>
           <span className="rounded-full bg-gray-950 px-3 py-1.5 text-xs font-bold text-white">Trend {Math.round(topic.trendingScore)}</span>
+          <form action={followTopic}><input type="hidden" name="topicKey" value={topic.slug} /><input type="hidden" name="topicLabel" value={topic.name} /><input type="hidden" name="returnTo" value={`/topics/${topic.slug}`} /><button className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-black hover:bg-gray-50">＋ Follow topic</button></form>
         </div>
         <p className="mt-4 text-base leading-7 text-gray-600">{topic.description || "Recent reporting and related coverage from BridgeNews sources."}</p>
       </div>
