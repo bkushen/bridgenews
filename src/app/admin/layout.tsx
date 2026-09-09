@@ -12,7 +12,7 @@ type NavGroup = { label: string; items: readonly NavItem[] };
 const GROUPS: readonly NavGroup[] = [
   { label: "Overview", items: [["Dashboard", "/admin", "⌂"], ["Health", "/admin/health", "♥"]] },
   { label: "Content", items: [["Articles", "/admin/articles", "▤"], ["Pages", "/admin/pages", "□"], ["Categories", "/admin/categories", "#"], ["Topics", "/admin/topics", "◎"], ["Homepage", "/admin/homepage", "⌘"]] },
-  { label: "Publishing", items: [["Sources", "/admin/sources", "◉"], ["Regions", "/admin/regions", "◆"], ["Official", "/admin/official", "✓"], ["Videos", "/admin/videos", "▶"]] },
+  { label: "Publishing", items: [["Sources", "/admin/sources", "◉"], ["Source tools", "/admin/source-tools", "☑"], ["Regions", "/admin/regions", "◆"], ["Official", "/admin/official", "✓"], ["Videos", "/admin/videos", "▶"]] },
   { label: "Website", items: [["Navigation", "/admin/navigation", "↔"], ["SEO", "/admin/seo", "⌕"], ["Settings", "/admin/settings", "⚙"]] },
   { label: "Operations", items: [["Ingestion", "/admin/ingestion", "↻"], ["Users", "/admin/users", "♙"], ["Audit log", "/admin/audit", "≡"]] },
 ];
