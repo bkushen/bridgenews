@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="admin-mobile-header sticky top-0 z-[70] border-b border-slate-200 bg-white/95 backdrop-blur lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           <Link href="/admin" className="mr-auto flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-950 text-[11px] font-black tracking-wide text-white">BN</span>
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-600 text-[11px] font-black tracking-wide text-white">BN</span>
             <div>
               <span className="block text-sm font-black leading-tight">BridgeNews</span>
               <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Admin</span>
@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <aside className="admin-sidebar sticky top-0 hidden h-screen border-r border-slate-200 bg-white lg:flex lg:flex-col">
           <div className="border-b border-slate-200 px-5 py-5">
             <Link href="/admin" className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-950 text-xs font-black tracking-wide text-white">BN</span>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-600 text-xs font-black tracking-wide text-white">BN</span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-slate-950">BridgeNews</p>
                 <p className="mt-0.5 text-[11px] font-semibold text-slate-400">Administration</p>
