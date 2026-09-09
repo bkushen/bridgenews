@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getSourceHealthInfo } from "@/lib/source-health";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { SourceLogo } from "@/components/source-logo";
@@ -82,6 +83,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
         {sources.map((source: any) => {
           const bad = Boolean(source.last_error_message) || Number(source.consecutive_failures ?? 0) > 0;
           const sourceRegionName = regionName.get(primaryRegion.get(source.id)) ?? "No region";
+          const healthInfo = getSourceHealthInfo(source.last_error_message, Number(source.consecutive_failures ?? 0));
 
           return (
             <article key={source.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -157,10 +159,16 @@ export default async function SourcesPage({ searchParams }: { searchParams: Sear
                       </section>
                     </div>
 
-                    {bad ? (
-                      <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                        <p className="font-black">Latest ingestion issue</p>
-                        <p className="mt-1 text-xs leading-5">{source.last_error_message || `${source.consecutive_failures} consecutive failures`}</p>
+                    {healthInfo ? (
+                      <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="font-black">{healthInfo.title}</p>
+                            <p className="mt-1 text-xs leading-5">{healthInfo.message}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-amber-800">Recommended: {healthInfo.recommendation}</p>
+                          </div>
+                          {!source.enabled ? <span className="shrink-0 rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">Currently disabled</span> : null}
+                        </div>
                       </div>
                     ) : (
                       <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-xs font-bold text-emerald-700">
