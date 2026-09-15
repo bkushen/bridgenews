@@ -6,16 +6,21 @@ type StoryWithImage = Story & { imageUrl?: string | null };
 export function StoryCard({ story, compact = false }: { story: StoryWithImage; compact?: boolean }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      {story.imageUrl ? (
-        <Link href={`/story/${story.slug}`} className="block overflow-hidden bg-gray-100">
+      <Link href={`/story/${story.slug}`} className={`block overflow-hidden bg-gray-100 ${compact ? "h-40" : "h-52"}`}>
+        {story.imageUrl ? (
           <img
             src={story.imageUrl}
             alt=""
-            className={`w-full object-cover transition duration-300 group-hover:scale-[1.02] ${compact ? "h-40" : "h-52"}`}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
-        </Link>
-      ) : null}
+        ) : (
+          <div className="flex h-full flex-col justify-between bg-gradient-to-br from-gray-100 to-gray-200 p-5">
+            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">BridgeNews</span>
+            <div><p className="text-xs font-black uppercase tracking-wide text-gray-500">{story.source}</p><p className="mt-2 line-clamp-3 text-lg font-black leading-snug text-gray-800">{story.title}</p></div>
+          </div>
+        )}
+      </Link>
       <div className={compact ? "p-4" : "p-5"}>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500">
           <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">{story.category}</span>
