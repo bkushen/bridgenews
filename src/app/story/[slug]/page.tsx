@@ -14,21 +14,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${story.title} | BridgeNews`,
     description,
     alternates: { canonical: `/story/${story.slug}` },
-    openGraph: {
-      type: "article",
-      title: story.title,
-      description,
-      images: story.imageUrl ? [{ url: story.imageUrl }] : undefined,
-      publishedTime: story.publishedAt || undefined,
-    },
-    twitter: {
-      card: story.imageUrl ? "summary_large_image" : "summary",
-      title: story.title,
-      description,
-      images: story.imageUrl ? [story.imageUrl] : undefined,
-    },
+    openGraph: { type: "article", title: story.title, description, images: story.imageUrl ? [{ url: story.imageUrl }] : undefined, publishedTime: story.publishedAt || undefined },
+    twitter: { card: story.imageUrl ? "summary_large_image" : "summary", title: story.title, description, images: story.imageUrl ? [story.imageUrl] : undefined },
   };
 }
+
+const secondaryButton = "rounded-full border border-[var(--news-line)] bg-[var(--news-card)] px-4 py-2 text-sm font-bold text-[var(--news-ink)] transition hover:border-[#b9aa99] hover:text-[var(--news-accent)]";
 
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -38,44 +29,45 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const shareUrl = encodeURIComponent(`/story/${story.slug}`);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10">
+    <main className="mx-auto max-w-[1040px] px-4 py-8 sm:px-5 sm:py-10">
       {story.articleId ? <ViewTracker articleId={story.articleId} /> : null}
       <article>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
-          {story.categorySlug ? <Link href={`/categories/${story.categorySlug}`} className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700 hover:bg-gray-200">{story.category}</Link> : <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">{story.category}</span>}
-          {story.regions.map((region) => <Link key={region.slug} href={`/region/${region.slug}`} className="hover:text-black">{region.name}</Link>)}
+        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--news-muted)]">
+          {story.categorySlug ? <Link href={`/categories/${story.categorySlug}`} className="rounded-full border border-[var(--news-line)] bg-[var(--news-card)] px-3 py-1.5 text-[var(--news-accent)] hover:border-[#b9aa99]">{story.category}</Link> : <span className="rounded-full border border-[var(--news-line)] bg-[var(--news-card)] px-3 py-1.5">{story.category}</span>}
+          {story.regions.map((region) => <Link key={region.slug} href={`/region/${region.slug}`} className="hover:text-[var(--news-accent)]">{region.name}</Link>)}
         </div>
-        <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">{story.title}</h1>
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-          {story.sourceSlug ? <Link href={`/sources/${story.sourceSlug}`} className="font-semibold text-gray-700 hover:text-black">{story.source}</Link> : <span className="font-semibold text-gray-700">{story.source}</span>}<span>•</span><span>{story.published}</span>
+
+        <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.05] tracking-tight text-[var(--news-ink)] sm:text-5xl md:text-6xl">{story.title}</h1>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-[var(--news-line)] pb-5 text-sm text-[var(--news-muted)]">
+          {story.sourceSlug ? <Link href={`/sources/${story.sourceSlug}`} className="font-bold text-[var(--news-ink)] hover:text-[var(--news-accent)]">{story.source}</Link> : <span className="font-bold text-[var(--news-ink)]">{story.source}</span>}<span>•</span><span>{story.published}</span>
           {story.sourceCount > 1 ? <><span>•</span><span>{story.sourceCount} publishers covering this story</span></> : null}
         </div>
 
-        {story.topics.length ? <div className="mt-4 flex flex-wrap gap-2">{story.topics.map((topic) => <Link key={topic.slug} href={`/topics/${topic.slug}`} className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 hover:border-gray-400 hover:text-black">#{topic.name}</Link>)}</div> : null}
+        {story.topics.length ? <div className="mt-4 flex flex-wrap gap-2">{story.topics.map((topic) => <Link key={topic.slug} href={`/topics/${topic.slug}`} className="rounded-full border border-[var(--news-line)] bg-transparent px-3 py-1.5 text-xs font-bold text-[var(--news-muted)] hover:border-[#b9aa99] hover:text-[var(--news-accent)]">#{topic.name}</Link>)}</div> : null}
 
         <div className="mt-5 flex flex-wrap gap-2">
-          {story.articleId ? <form action={saveBookmark}><input type="hidden" name="articleId" value={story.articleId} /><input type="hidden" name="returnTo" value={`/story/${story.slug}`} /><button className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">☆ Save story</button></form> : null}
-          <a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noreferrer" className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">Share</a>
-          <a href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noreferrer" className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">Post ↗</a>
-          <a href={story.originalUrl} target="_blank" rel="noreferrer" className="rounded-full bg-black px-4 py-2 text-sm font-bold text-white hover:bg-gray-800">Read original ↗</a>
+          {story.articleId ? <form action={saveBookmark}><input type="hidden" name="articleId" value={story.articleId} /><input type="hidden" name="returnTo" value={`/story/${story.slug}`} /><button className={secondaryButton}>☆ Save story</button></form> : null}
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noreferrer" className={secondaryButton}>Share</a>
+          <a href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noreferrer" className={secondaryButton}>Post ↗</a>
+          <a href={story.originalUrl} target="_blank" rel="noreferrer" className="rounded-full bg-[var(--news-ink)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--news-accent-deep)]">Read original ↗</a>
         </div>
 
-        {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[560px] w-full rounded-3xl object-cover" /> : <div className="mt-8 grid h-64 place-items-center rounded-3xl bg-gray-100 text-sm font-bold text-gray-400">Image unavailable from publisher</div>}
+        {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[580px] w-full rounded-xl border border-[var(--news-line-soft)] object-cover" /> : <div className="mt-8 grid h-64 place-items-center rounded-xl border border-[var(--news-line-soft)] bg-[var(--news-paper-deep)] text-sm font-bold text-[var(--news-muted)]">Image unavailable from publisher</div>}
 
-        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="flex items-center justify-between gap-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Publisher snippet</p><span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500">No AI summary</span></div>
-          <p className="mt-4 text-lg leading-8 text-gray-800">{story.summary}</p>
-          {story.sourceWebsiteUrl ? <p className="mt-5 text-sm text-gray-500">Coverage attributed to <a href={story.sourceWebsiteUrl} target="_blank" rel="noreferrer" className="font-bold text-gray-800 underline">{story.source}</a>. BridgeNews links readers to the original publisher for the full report.</p> : null}
+        <section className="mt-8 border-y border-[var(--news-line)] py-6 md:py-8">
+          <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--news-accent)]">Publisher snippet</p><span className="rounded-full border border-[var(--news-line)] bg-[var(--news-paper)] px-3 py-1 text-[10px] font-bold text-[var(--news-muted)]">No AI summary</span></div>
+          <p className="mt-4 max-w-3xl font-serif text-xl leading-8 text-[var(--news-ink)]">{story.summary}</p>
+          {story.sourceWebsiteUrl ? <p className="mt-5 max-w-3xl text-sm leading-6 text-[var(--news-muted)]">Coverage attributed to <a href={story.sourceWebsiteUrl} target="_blank" rel="noreferrer" className="font-bold text-[var(--news-ink)] underline decoration-[var(--news-line)] hover:text-[var(--news-accent)]">{story.source}</a>. BridgeNews links readers to the original publisher for the full report.</p> : null}
         </section>
 
-        <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-4"><div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Related coverage</p><h2 className="mt-1 text-2xl font-black tracking-tight">Also covered by</h2></div><span className="text-sm font-semibold text-gray-500">{story.sources.length} publisher{story.sources.length === 1 ? "" : "s"}</span></div>
-          <div className="divide-y divide-gray-100">
+        <section className="mt-8 rounded-xl border border-[var(--news-line)] bg-[var(--news-card)] p-5 sm:p-6 md:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--news-line-soft)] pb-4"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--news-accent)]">Related coverage</p><h2 className="mt-1 text-2xl font-bold text-[var(--news-ink)]">Also covered by</h2></div><span className="text-sm font-semibold text-[var(--news-muted)]">{story.sources.length} publisher{story.sources.length === 1 ? "" : "s"}</span></div>
+          <div className="divide-y divide-[var(--news-line-soft)]">
             {story.sources.map((source, index) => (
               <div key={`${source.url}-${index}`} className="grid gap-3 py-5 sm:grid-cols-[48px_1fr_auto] sm:items-center">
-                <Link href={`/sources/${source.slug}`} className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl border bg-white">{source.logoUrl ? <img src={source.logoUrl} alt="" className="h-full w-full object-contain p-1" /> : <span className="text-xs font-black">{source.name.slice(0,2).toUpperCase()}</span>}</Link>
-                <div className="min-w-0"><Link href={`/sources/${source.slug}`} className="text-xs font-black uppercase tracking-wider text-gray-500 hover:text-black">{source.name}</Link><p className="mt-1 line-clamp-2 font-bold text-gray-900">{source.headline}</p>{source.publishedAt ? <p className="mt-1 text-xs text-gray-400">{new Date(source.publishedAt).toLocaleString("en-AU")}</p> : null}</div>
-                <a href={source.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-xs font-black hover:bg-gray-50">Read original ↗</a>
+                <Link href={`/sources/${source.slug}`} className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg border border-[var(--news-line)] bg-white">{source.logoUrl ? <img src={source.logoUrl} alt="" className="h-full w-full object-contain p-1" /> : <span className="text-xs font-black">{source.name.slice(0,2).toUpperCase()}</span>}</Link>
+                <div className="min-w-0"><Link href={`/sources/${source.slug}`} className="text-[10px] font-black uppercase tracking-wider text-[var(--news-accent)]">{source.name}</Link><p className="mt-1 line-clamp-2 font-serif font-bold leading-6 text-[var(--news-ink)]">{source.headline}</p>{source.publishedAt ? <p className="mt-1 text-xs text-[var(--news-muted)]">{new Date(source.publishedAt).toLocaleString("en-AU")}</p> : null}</div>
+                <a href={source.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-full border border-[var(--news-line)] px-4 py-2 text-xs font-black text-[var(--news-ink)] hover:border-[#b9aa99] hover:text-[var(--news-accent)]">Read original ↗</a>
               </div>
             ))}
           </div>

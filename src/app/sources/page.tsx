@@ -13,17 +13,15 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
   const sources = (await getSourceDirectory(120)).filter((source) => language === "all" || source.languageCode === language);
 
   return (
-    <main className="mx-auto max-w-7xl px-5 py-10">
-      <div className="flex flex-col gap-5 border-b border-gray-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Publishers</p><h1 className="mt-2 text-4xl font-black tracking-tight md:text-5xl">Source Directory</h1><p className="mt-3 max-w-3xl leading-7 text-gray-600">Browse active publishers, their language, current BridgeNews article count and latest source health.</p></div>
-        <div className="flex gap-2">{[["all","All"],["en","English"],["si","සිංහල"],["ta","தமிழ்"]].map(([value,label]) => <Link key={value} href={`/sources?language=${value}`} className={`rounded-full px-4 py-2 text-xs font-black ${language === value ? "bg-gray-950 text-white" : "border border-gray-200 bg-white"}`}>{label}</Link>)}</div>
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-5 sm:py-10">
+      <div className="flex flex-col gap-5 border-b border-[var(--news-line)] pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--news-accent)]">Publishers</p><h1 className="mt-2 text-4xl font-bold tracking-tight text-[var(--news-ink)] md:text-5xl">Source Directory</h1><p className="mt-3 max-w-3xl leading-7 text-[var(--news-muted)]">Browse active publishers, languages, current BridgeNews article counts and source activity.</p></div>
+        <div className="flex flex-wrap gap-2">{[["all","All"],["en","English"],["si","සිංහල"],["ta","தமிழ்"]].map(([value,label]) => <Link key={value} href={`/sources?language=${value}`} className={`rounded-full px-4 py-2 text-xs font-black transition ${language === value ? "bg-[var(--news-accent)] text-white" : "border border-[var(--news-line)] bg-[var(--news-card)] text-[var(--news-ink)] hover:border-[#bcae9e]"}`}>{label}</Link>)}</div>
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {sources.map((source) => {
-          const icon = sourceIcon(source);
-          return <Link key={source.id} href={`/sources/${source.slug}`} className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-3"><div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl border bg-white">{icon ? <img src={icon} alt="" className="h-full w-full object-contain p-1" /> : <span className="font-black">{source.name.slice(0,2).toUpperCase()}</span>}</div><div className="min-w-0"><h2 className="truncate font-black group-hover:underline">{source.name}</h2><p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{source.languageCode}</p></div></div><div className="mt-5 flex items-center justify-between text-xs"><span className="font-black">{source.articleCount} stories</span><span className="text-gray-400">{source.lastSuccessAt ? "Active" : "Connected"}</span></div></Link>;
-        })}
+        {sources.map((source) => { const icon = sourceIcon(source); return <Link key={source.id} href={`/sources/${source.slug}`} className="group rounded-xl border border-[var(--news-line)] bg-[var(--news-card)] p-5 transition hover:border-[#bcae9e]"><div className="flex items-center gap-3"><div className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg border border-[var(--news-line)] bg-white">{icon ? <img src={icon} alt="" className="h-full w-full object-contain p-1" /> : <span className="font-black text-[var(--news-ink)]">{source.name.slice(0,2).toUpperCase()}</span>}</div><div className="min-w-0"><h2 className="truncate font-serif font-bold text-[var(--news-ink)] group-hover:text-[var(--news-accent)]">{source.name}</h2><p className="text-[10px] font-black uppercase tracking-wider text-[var(--news-muted)]">{source.languageCode}</p></div></div><div className="mt-5 flex items-center justify-between border-t border-[var(--news-line-soft)] pt-3 text-xs"><span className="font-black text-[var(--news-ink)]">{source.articleCount} stories</span><span className="text-[var(--news-muted)]">{source.lastSuccessAt ? "Active" : "Connected"}</span></div></Link>; })}
       </div>
+      {!sources.length ? <div className="mt-8 rounded-xl border border-dashed border-[var(--news-line)] bg-[var(--news-card)] p-8 text-center text-[var(--news-muted)]">No active publishers match this language filter.</div> : null}
     </main>
   );
 }
