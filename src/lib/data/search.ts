@@ -7,6 +7,9 @@ export type SearchStory = Story & {
   languageCode?: string;
   sourceSlug?: string;
   publishedAt?: string | null;
+  regionSlugs?: string[];
+  categorySlug?: string;
+  topicSlugs?: string[];
 };
 
 type SearchRpcRow = {
@@ -50,32 +53,64 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
 
     const articleIds = rows.map((row) => row.id);
     const sourceIds = [...new Set(rows.map((row) => row.source_id))];
-    const [sourcesResult, categoryLinks, languageRows] = await Promise.all([
+    const [sourcesResult, categoryLinks, topicLinks, regionLinks, languageRows] = await Promise.all([
       supabase.from("sources").select("id,name,slug").in("id", sourceIds),
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
+      supabase.from("article_topics").select("article_id,topic_id").in("article_id", articleIds),
+      supabase.from("article_regions").select("article_id,region_id").in("article_id", articleIds),
       supabase.from("articles").select("id,language_code").in("id", articleIds),
     ]);
     if (sourcesResult.error) throw sourcesResult.error;
     if (categoryLinks.error) throw categoryLinks.error;
+    if (topicLinks.error) throw topicLinks.error;
+    if (regionLinks.error) throw regionLinks.error;
     if (languageRows.error) throw languageRows.error;
 
     const categoryIds = [...new Set((categoryLinks.data ?? []).map((row) => row.category_id))];
-    const categoriesResult = categoryIds.length
-      ? await supabase.from("categories").select("id,name").in("id", categoryIds)
-      : { data: [], error: null };
+    const topicIds = [...new Set((topicLinks.data ?? []).map((row) => row.topic_id))];
+    const regionIds = [...new Set((regionLinks.data ?? []).map((row) => row.region_id))];
+    const [categoriesResult, topicsResult, regionsResult] = await Promise.all([
+      categoryIds.length ? supabase.from("categories").select("id,name,slug").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
+      topicIds.length ? supabase.from("topics").select("id,name,slug").in("id", topicIds) : Promise.resolve({ data: [], error: null }),
+      regionIds.length ? supabase.from("regions").select("id,name,slug").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
+    ]);
     if (categoriesResult.error) throw categoriesResult.error;
+    if (topicsResult.error) throw topicsResult.error;
+    if (regionsResult.error) throw regionsResult.error;
 
     const sourceById = new Map((sourcesResult.data ?? []).map((source) => [source.id, source]));
     const languageByArticle = new Map((languageRows.data ?? []).map((article) => [article.id, article.language_code || "en"]));
-    const categoryNames = new Map((categoriesResult.data ?? []).map((category) => [category.id, category.name]));
-    const categoryByArticle = new Map<string, string>();
+    const categoryMeta = new Map((categoriesResult.data ?? []).map((category) => [category.id, category]));
+    const topicMeta = new Map((topicsResult.data ?? []).map((topic) => [topic.id, topic]));
+    const regionMeta = new Map((regionsResult.data ?? []).map((region) => [region.id, region]));
+
+    const categoryByArticle = new Map<string, { name: string; slug: string }>();
     for (const link of categoryLinks.data ?? []) {
-      const name = categoryNames.get(link.category_id);
-      if (name && !categoryByArticle.has(link.article_id)) categoryByArticle.set(link.article_id, name);
+      const meta = categoryMeta.get(link.category_id);
+      if (meta && !categoryByArticle.has(link.article_id)) categoryByArticle.set(link.article_id, { name: meta.name, slug: meta.slug });
+    }
+
+    const topicsByArticle = new Map<string, string[]>();
+    for (const link of topicLinks.data ?? []) {
+      const meta = topicMeta.get(link.topic_id);
+      if (!meta) continue;
+      topicsByArticle.set(link.article_id, [...(topicsByArticle.get(link.article_id) ?? []), meta.slug]);
+    }
+
+    const regionsByArticle = new Map<string, { names: string[]; slugs: string[] }>();
+    for (const link of regionLinks.data ?? []) {
+      const meta = regionMeta.get(link.region_id);
+      if (!meta) continue;
+      const current = regionsByArticle.get(link.article_id) ?? { names: [], slugs: [] };
+      current.names.push(meta.name);
+      current.slugs.push(meta.slug);
+      regionsByArticle.set(link.article_id, current);
     }
 
     return rows.map((row) => {
       const source = sourceById.get(row.source_id);
+      const category = categoryByArticle.get(row.id);
+      const region = regionsByArticle.get(row.id);
       return {
         articleId: row.id,
         slug: row.slug,
@@ -86,8 +121,11 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
         published: relativeTime(row.published_at || row.discovered_at),
         publishedAt: row.published_at || row.discovered_at,
         languageCode: languageByArticle.get(row.id) || "en",
-        regions: [],
-        category: categoryByArticle.get(row.id) || "News",
+        regions: region?.names ?? [],
+        regionSlugs: region?.slugs ?? [],
+        category: category?.name || "News",
+        categorySlug: category?.slug,
+        topicSlugs: topicsByArticle.get(row.id) ?? [],
         sourceCount: 1,
         imageUrl: row.image_url,
       };
