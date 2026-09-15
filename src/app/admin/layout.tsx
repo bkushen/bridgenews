@@ -19,7 +19,13 @@ const GROUPS: readonly NavGroup[] = [
   { label: "Operations", items: [["Ingestion", "/admin/ingestion", "ingestion"], ["Users", "/admin/users", "users"], ["Audit log", "/admin/audit", "audit"]] },
 ];
 
-const MOBILE_NAV: readonly NavItem[] = GROUPS.flatMap((group) => [...group.items]);
+const MOBILE_PRIMARY: readonly NavItem[] = [
+  ["Dashboard", "/admin", "dashboard"],
+  ["Articles", "/admin/articles", "articles"],
+  ["Sources", "/admin/sources", "sources"],
+  ["Ingestion", "/admin/ingestion", "ingestion"],
+  ["Health", "/admin/health", "health"],
+];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
@@ -29,19 +35,29 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div data-admin-shell data-admin-theme="light" className="admin-theme-shell min-h-screen bg-[#f6f6f6] text-slate-950">
       <header className="admin-mobile-header sticky top-0 z-[70] border-b border-slate-200 bg-white/95 backdrop-blur lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Link href="/admin" className="mr-auto flex items-center gap-2.5" aria-label="BridgeNews admin dashboard">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-black text-[11px] font-black tracking-wide text-white">BN</span>
-            <div>
-              <span className="block text-sm font-black leading-tight">BridgeNews</span>
+          <Link href="/admin" className="mr-auto flex min-w-0 items-center gap-2.5" aria-label="BridgeNews admin dashboard">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black text-[11px] font-black tracking-wide text-white">BN</span>
+            <div className="min-w-0">
+              <span className="block truncate text-sm font-black leading-tight">BridgeNews</span>
               <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Admin</span>
             </div>
           </Link>
           <AdminThemeToggle compact />
           <Link href="/" className="admin-secondary-action inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-            <span>Site</span><AdminIcon name="external" className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">Site</span><AdminIcon name="external" className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <nav aria-label="Admin navigation" className="flex gap-2 overflow-x-auto border-t border-slate-100 px-3 py-2.5">{MOBILE_NAV.map(([label, href, icon]) => <AdminNavLink key={href} href={href} label={label} icon={icon} mobile />)}</nav>
+        <div className="flex items-center gap-2 border-t border-slate-100 px-3 py-2.5">
+          <nav aria-label="Primary admin navigation" className="flex min-w-0 flex-1 gap-2 overflow-x-auto">{MOBILE_PRIMARY.map(([label, href, icon]) => <AdminNavLink key={href} href={href} label={label} icon={icon} mobile />)}</nav>
+          <details className="admin-mobile-menu relative shrink-0">
+            <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 marker:hidden">
+              <AdminIcon name="navigation" className="h-4 w-4" /><span>Menu</span>
+            </summary>
+            <div className="absolute right-0 top-12 z-[90] max-h-[72vh] w-[min(88vw,340px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+              {GROUPS.map((group) => <div key={group.label} className="mb-4 last:mb-0"><p className="px-2 pb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{group.label}</p><div className="grid grid-cols-2 gap-1">{group.items.map(([label, href, icon]) => <AdminNavLink key={href} href={href} label={label} icon={icon} mobile />)}</div></div>)}
+            </div>
+          </details>
+        </div>
       </header>
 
       <div className="mx-auto grid min-h-screen max-w-[1920px] lg:grid-cols-[264px_minmax(0,1fr)]">
