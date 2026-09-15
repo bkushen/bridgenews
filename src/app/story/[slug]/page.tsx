@@ -1,35 +1,71 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStoryBySlug } from "@/lib/data/story-detail";
 import { saveBookmark } from "@/app/saved/actions";
 import { ViewTracker } from "@/components/view-tracker";
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const story = await getStoryBySlug(slug);
+  if (!story) return { title: "Story not found | BridgeNews" };
+  const description = story.summary.slice(0, 180);
+  return {
+    title: `${story.title} | BridgeNews`,
+    description,
+    alternates: { canonical: `/story/${story.slug}` },
+    openGraph: {
+      type: "article",
+      title: story.title,
+      description,
+      images: story.imageUrl ? [{ url: story.imageUrl }] : undefined,
+      publishedTime: story.publishedAt || undefined,
+    },
+    twitter: {
+      card: story.imageUrl ? "summary_large_image" : "summary",
+      title: story.title,
+      description,
+      images: story.imageUrl ? [story.imageUrl] : undefined,
+    },
+  };
+}
+
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const story = await getStoryBySlug(slug);
   if (!story) notFound();
+  const shareText = encodeURIComponent(story.title);
+  const shareUrl = encodeURIComponent(`/story/${story.slug}`);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-10">
       {story.articleId ? <ViewTracker articleId={story.articleId} /> : null}
       <article>
         <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
-          <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">{story.category}</span>
-          {story.regions.map((region) => <span key={region}>{region}</span>)}
+          {story.categorySlug ? <Link href={`/categories/${story.categorySlug}`} className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700 hover:bg-gray-200">{story.category}</Link> : <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">{story.category}</span>}
+          {story.regions.map((region) => <Link key={region.slug} href={`/region/${region.slug}`} className="hover:text-black">{region.name}</Link>)}
         </div>
         <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">{story.title}</h1>
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-          <span className="font-semibold text-gray-700">{story.source}</span><span>•</span><span>{story.published}</span>
+          {story.sourceSlug ? <Link href={`/sources/${story.sourceSlug}`} className="font-semibold text-gray-700 hover:text-black">{story.source}</Link> : <span className="font-semibold text-gray-700">{story.source}</span>}<span>•</span><span>{story.published}</span>
           {story.sourceCount > 1 ? <><span>•</span><span>{story.sourceCount} publishers covering this story</span></> : null}
         </div>
 
-        {story.articleId ? <form action={saveBookmark} className="mt-5"><input type="hidden" name="articleId" value={story.articleId} /><input type="hidden" name="returnTo" value={`/story/${story.slug}`} /><button className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">☆ Save story</button></form> : null}
+        {story.topics.length ? <div className="mt-4 flex flex-wrap gap-2">{story.topics.map((topic) => <Link key={topic.slug} href={`/topics/${topic.slug}`} className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 hover:border-gray-400 hover:text-black">#{topic.name}</Link>)}</div> : null}
 
-        {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[560px] w-full rounded-3xl object-cover" /> : null}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {story.articleId ? <form action={saveBookmark}><input type="hidden" name="articleId" value={story.articleId} /><input type="hidden" name="returnTo" value={`/story/${story.slug}`} /><button className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">☆ Save story</button></form> : null}
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noreferrer" className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">Share</a>
+          <a href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noreferrer" className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800 hover:bg-gray-50">Post ↗</a>
+          <a href={story.originalUrl} target="_blank" rel="noreferrer" className="rounded-full bg-black px-4 py-2 text-sm font-bold text-white hover:bg-gray-800">Read original ↗</a>
+        </div>
+
+        {story.imageUrl ? <img src={story.imageUrl} alt="" className="mt-8 max-h-[560px] w-full rounded-3xl object-cover" /> : <div className="mt-8 grid h-64 place-items-center rounded-3xl bg-gray-100 text-sm font-bold text-gray-400">Image unavailable from publisher</div>}
 
         <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
           <div className="flex items-center justify-between gap-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">Publisher snippet</p><span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500">No AI summary</span></div>
           <p className="mt-4 text-lg leading-8 text-gray-800">{story.summary}</p>
+          {story.sourceWebsiteUrl ? <p className="mt-5 text-sm text-gray-500">Coverage attributed to <a href={story.sourceWebsiteUrl} target="_blank" rel="noreferrer" className="font-bold text-gray-800 underline">{story.source}</a>. BridgeNews links readers to the original publisher for the full report.</p> : null}
         </section>
 
         <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
@@ -38,7 +74,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
             {story.sources.map((source, index) => (
               <div key={`${source.url}-${index}`} className="grid gap-3 py-5 sm:grid-cols-[48px_1fr_auto] sm:items-center">
                 <Link href={`/sources/${source.slug}`} className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl border bg-white">{source.logoUrl ? <img src={source.logoUrl} alt="" className="h-full w-full object-contain p-1" /> : <span className="text-xs font-black">{source.name.slice(0,2).toUpperCase()}</span>}</Link>
-                <div className="min-w-0"><Link href={`/sources/${source.slug}`} className="text-xs font-black uppercase tracking-wider text-gray-500 hover:text-black">{source.name}</Link><p className="mt-1 line-clamp-2 font-bold text-gray-900">{source.headline}</p>{source.publishedAt ? <p className="mt-1 text-xs text-gray-400">Publisher timestamp available</p> : null}</div>
+                <div className="min-w-0"><Link href={`/sources/${source.slug}`} className="text-xs font-black uppercase tracking-wider text-gray-500 hover:text-black">{source.name}</Link><p className="mt-1 line-clamp-2 font-bold text-gray-900">{source.headline}</p>{source.publishedAt ? <p className="mt-1 text-xs text-gray-400">{new Date(source.publishedAt).toLocaleString("en-AU")}</p> : null}</div>
                 <a href={source.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-xs font-black hover:bg-gray-50">Read original ↗</a>
               </div>
             ))}
