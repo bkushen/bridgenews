@@ -35,13 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
     const categoryRoutes: MetadataRoute.Sitemap = (categoriesResult.data ?? []).map((category) => ({
-      url: `${BASE_URL}/category/${category.slug}`,
+      url: `${BASE_URL}/categories/${category.slug}`,
       lastModified: category.updated_at || undefined,
       changeFrequency: "daily",
       priority: 0.7,
     }));
     const topicRoutes: MetadataRoute.Sitemap = (topicsResult.data ?? []).map((topic) => ({
-      url: `${BASE_URL}/topic/${topic.slug}`,
+      url: `${BASE_URL}/topics/${topic.slug}`,
       lastModified: topic.updated_at || undefined,
       changeFrequency: "daily",
       priority: 0.65,
