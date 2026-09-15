@@ -15,15 +15,16 @@ const GROUPS: readonly NavGroup[] = [
   { label: "Overview", items: [["Dashboard", "/admin", "dashboard"], ["Health", "/admin/health", "health"]] },
   { label: "Content", items: [["Articles", "/admin/articles", "articles"], ["Pages", "/admin/pages", "pages"], ["Categories", "/admin/categories", "categories"], ["Topics", "/admin/topics", "topics"], ["Homepage", "/admin/homepage", "homepage"]] },
   { label: "Publishing", items: [["Sources", "/admin/sources", "sources"], ["Source tools", "/admin/source-tools", "tools"], ["Regions", "/admin/regions", "regions"], ["Official", "/admin/official", "official"], ["Videos", "/admin/videos", "videos"]] },
+  { label: "Growth", items: [["Traffic", "/admin/traffic", "analytics"], ["Newsletter", "/admin/newsletter", "newsletter"], ["Social queue", "/admin/social", "social"]] },
   { label: "Website", items: [["Navigation", "/admin/navigation", "navigation"], ["SEO", "/admin/seo", "seo"], ["Settings", "/admin/settings", "settings"]] },
   { label: "Operations", items: [["Ingestion", "/admin/ingestion", "ingestion"], ["Image recovery", "/admin/images", "images"], ["Users", "/admin/users", "users"], ["Audit log", "/admin/audit", "audit"]] },
 ];
 
 const MOBILE_PRIMARY: readonly NavItem[] = [
   ["Dashboard", "/admin", "dashboard"],
+  ["Traffic", "/admin/traffic", "analytics"],
   ["Articles", "/admin/articles", "articles"],
   ["Sources", "/admin/sources", "sources"],
-  ["Ingestion", "/admin/ingestion", "ingestion"],
   ["Images", "/admin/images", "images"],
 ];
 
@@ -98,11 +99,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="hidden min-h-16 items-center justify-between border-b border-slate-200 bg-white px-6 lg:flex xl:px-8">
             <div className="flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <div><p className="text-sm font-black text-slate-900">BridgeNews Admin</p><p className="text-xs font-semibold text-slate-400">Live content and publishing workspace</p></div>
+              <div><p className="text-sm font-black text-slate-900">BridgeNews Admin</p><p className="text-xs font-semibold text-slate-400">Live content, publishing and audience workspace</p></div>
             </div>
             <div className="flex items-center gap-2">
+              <Link href="/admin/traffic" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">Traffic</Link>
               <Link href="/admin/images" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">Image queue</Link>
-              <Link href="/admin/ingestion" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">Live ingestion</Link>
               <Link href="/" className="inline-flex items-center gap-1.5 rounded-xl bg-black px-3.5 py-2 text-xs font-black text-white hover:bg-slate-800">View website <AdminIcon name="external" className="h-3.5 w-3.5" /></Link>
             </div>
           </div>
