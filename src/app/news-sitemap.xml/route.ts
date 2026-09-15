@@ -20,7 +20,8 @@ export async function GET() {
 
   const body = (data ?? []).map((article) => {
     const lang = String(article.language_code || "en").toLowerCase().slice(0, 2);
-    return `<url><loc>${xml(`${BASE_URL}/story/${article.slug}`)}</loc><news:news><news:publication><news:name>BridgeNews</news:name><news:language>${xml(lang)}</news:language></news:publication><news:publication_date>${xml(new Date(article.published_at).toISOString())}</news:publication_date><news:title>${xml(article.title)}</news:title></news:news>${article.image_url ? `<image:image><image:loc>${xml(article.image_url)}</image:loc></image:image>` : ""}</url>`;
+    const publishedAt = new Date(String(article.published_at)).toISOString();
+    return `<url><loc>${xml(`${BASE_URL}/story/${article.slug}`)}</loc><news:news><news:publication><news:name>BridgeNews</news:name><news:language>${xml(lang)}</news:language></news:publication><news:publication_date>${xml(publishedAt)}</news:publication_date><news:title>${xml(String(article.title))}</news:title></news:news>${article.image_url ? `<image:image><image:loc>${xml(String(article.image_url))}</image:loc></image:image>` : ""}</url>`;
   }).join("");
 
   const content = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${body}</urlset>`;
