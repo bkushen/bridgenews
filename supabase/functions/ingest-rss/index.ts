@@ -25,6 +25,8 @@ type FeedItem = {
   publishedAt?: string;
 };
 
+const AUTO_PAUSE_FAILURES = 12;
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -207,11 +209,7 @@ async function processSource(supabase: ReturnType<typeof createClient>, source: 
         const canonicalUrl = canonicalizeUrl(item.link);
         const externalId = item.guid ?? canonicalUrl;
         const hash = await sha256(`${item.title}\n${canonicalUrl}`);
-        const initialStatus = needsAi
-          ? "processing"
-          : source.auto_publish
-            ? "published"
-            : "review_required";
+        const initialStatus = needsAi ? "processing" : source.auto_publish ? "published" : "review_required";
 
         const insert = await supabase
           .from("articles")
@@ -229,9 +227,7 @@ async function processSource(supabase: ReturnType<typeof createClient>, source: 
             language_code: source.default_language_code || "en",
             status: initialStatus,
             auto_publish_requested: source.auto_publish,
-            published_at:
-              item.publishedAt ??
-              (initialStatus === "published" ? new Date().toISOString() : null),
+            published_at: item.publishedAt ?? (initialStatus === "published" ? new Date().toISOString() : null),
             content_hash: hash,
             raw_metadata: { feed_guid: item.guid ?? null },
           })
@@ -247,17 +243,10 @@ async function processSource(supabase: ReturnType<typeof createClient>, source: 
         }
 
         insertedCount += 1;
-
         if (regionIds.length) {
-          const regionInsert = await supabase
-            .from("article_regions")
-            .insert(
-              regionIds.map((region_id) => ({
-                article_id: insert.data.id,
-                region_id,
-                confidence: 1,
-              })),
-            );
+          const regionInsert = await supabase.from("article_regions").insert(
+            regionIds.map((region_id) => ({ article_id: insert.data.id, region_id, confidence: 1 })),
+          );
           if (regionInsert.error) throw regionInsert.error;
         }
       } catch (error) {
@@ -267,54 +256,54 @@ async function processSource(supabase: ReturnType<typeof createClient>, source: 
     }
 
     const now = new Date().toISOString();
+    await supabase.from("sources").update({
+      last_fetched_at: now,
+      last_success_at: now,
+      last_error_at: null,
+      last_error_message: null,
+      consecutive_failures: 0,
+    }).eq("id", source.id);
 
-    await supabase
-      .from("sources")
-      .update({
-        last_fetched_at: now,
-        last_success_at: now,
-        last_error_at: null,
-        last_error_message: null,
-        consecutive_failures: 0,
-      })
-      .eq("id", source.id);
+    await supabase.from("ingestion_runs").update({
+      finished_at: now,
+      fetched_count: fetchedCount,
+      inserted_count: insertedCount,
+      duplicate_count: duplicateCount,
+      failed_count: failedCount,
+    }).eq("id", run.data.id);
 
-    await supabase
-      .from("ingestion_runs")
-      .update({
-        finished_at: now,
-        fetched_count: fetchedCount,
-        inserted_count: insertedCount,
-        duplicate_count: duplicateCount,
-        failed_count: failedCount,
-      })
-      .eq("id", run.data.id);
-
-    return { source: source.name, fetchedCount, insertedCount, duplicateCount, failedCount };
+    return { source: source.name, fetchedCount, insertedCount, duplicateCount, failedCount, autoPaused: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const now = new Date().toISOString();
+    const nextFailures = (source.consecutive_failures || 0) + 1;
+    const autoPaused = nextFailures >= AUTO_PAUSE_FAILURES;
 
-    await supabase
-      .from("sources")
-      .update({
-        last_fetched_at: now,
-        last_error_at: now,
-        last_error_message: message.slice(0, 1000),
-        consecutive_failures: (source.consecutive_failures || 0) + 1,
-      })
-      .eq("id", source.id);
+    await supabase.from("sources").update({
+      last_fetched_at: now,
+      last_error_at: now,
+      last_error_message: message.slice(0, 1000),
+      consecutive_failures: nextFailures,
+      ...(autoPaused ? { enabled: false } : {}),
+    }).eq("id", source.id);
 
-    await supabase
-      .from("ingestion_runs")
-      .update({
-        finished_at: now,
-        failed_count: Math.max(failedCount, 1),
-        error_message: message.slice(0, 2000),
-      })
-      .eq("id", run.data.id);
+    if (autoPaused) {
+      await supabase.from("admin_audit_log").insert({
+        user_id: null,
+        action: "auto_pause_unhealthy_source",
+        entity_type: "source",
+        entity_id: source.id,
+        details: { consecutive_failures: nextFailures, error: message.slice(0, 500) },
+      });
+    }
 
-    throw error;
+    await supabase.from("ingestion_runs").update({
+      finished_at: now,
+      failed_count: Math.max(failedCount, 1),
+      error_message: `${message}${autoPaused ? ` | Auto-paused after ${nextFailures} consecutive failures.` : ""}`.slice(0, 2000),
+    }).eq("id", run.data.id);
+
+    throw new Error(`${message}${autoPaused ? ` (auto-paused after ${nextFailures} failures)` : ""}`);
   }
 }
 
@@ -323,29 +312,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !serviceRole) {
-    return Response.json({ error: "Missing Supabase server secrets" }, { status: 500 });
-  }
+  if (!url || !serviceRole) return Response.json({ error: "Missing Supabase server secrets" }, { status: 500 });
 
-  const supabase = createClient(url, serviceRole, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = createClient(url, serviceRole, { auth: { persistSession: false, autoRefreshToken: false } });
 
   let body: { sourceId?: string } = {};
-  try {
-    body = await req.json();
-  } catch {}
+  try { body = await req.json(); } catch {}
 
-  let query = supabase
-    .from("sources")
-    .select(
-      "id,name,feed_url,auto_publish,ai_summary_enabled,ai_classification_enabled,default_language_code,max_items_per_fetch,fetch_interval_minutes,last_fetched_at,consecutive_failures",
-    )
-    .eq("enabled", true)
-    .eq("source_type", "rss");
+  let query = supabase.from("sources").select(
+    "id,name,feed_url,auto_publish,ai_summary_enabled,ai_classification_enabled,default_language_code,max_items_per_fetch,fetch_interval_minutes,last_fetched_at,consecutive_failures",
+  ).eq("enabled", true).eq("source_type", "rss");
 
   if (body.sourceId) query = query.eq("id", body.sourceId);
-
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
@@ -357,10 +335,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     try {
       results.push(await processSource(supabase, source));
     } catch (error) {
-      results.push({
-        source: source.name,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      results.push({ source: source.name, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
