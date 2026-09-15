@@ -97,20 +97,17 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
       topicsByArticle.set(link.article_id, [...(topicsByArticle.get(link.article_id) ?? []), meta.slug]);
     }
 
-    const regionsByArticle = new Map<string, { names: string[]; slugs: string[] }>();
+    const regionsByArticle = new Map<string, string[]>();
     for (const link of regionLinks.data ?? []) {
       const meta = regionMeta.get(link.region_id);
       if (!meta) continue;
-      const current = regionsByArticle.get(link.article_id) ?? { names: [], slugs: [] };
-      current.names.push(meta.name);
-      current.slugs.push(meta.slug);
-      regionsByArticle.set(link.article_id, current);
+      regionsByArticle.set(link.article_id, [...(regionsByArticle.get(link.article_id) ?? []), meta.slug]);
     }
 
     return rows.map((row) => {
       const source = sourceById.get(row.source_id);
       const category = categoryByArticle.get(row.id);
-      const region = regionsByArticle.get(row.id);
+      const regionSlugs = regionsByArticle.get(row.id) ?? [];
       return {
         articleId: row.id,
         slug: row.slug,
@@ -121,8 +118,8 @@ export async function searchStories(query: string, limit = 30): Promise<SearchSt
         published: relativeTime(row.published_at || row.discovered_at),
         publishedAt: row.published_at || row.discovered_at,
         languageCode: languageByArticle.get(row.id) || "en",
-        regions: region?.names ?? [],
-        regionSlugs: region?.slugs ?? [],
+        regions: regionSlugs as Story["regions"],
+        regionSlugs,
         category: category?.name || "News",
         categorySlug: category?.slug,
         topicSlugs: topicsByArticle.get(row.id) ?? [],
