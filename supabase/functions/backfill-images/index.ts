@@ -27,22 +27,64 @@ function meta(html: string, key: string) {
   return undefined;
 }
 
+function jsonLdImage(html: string): string | undefined {
+  const scripts = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  for (const script of scripts) {
+    try {
+      const parsed = JSON.parse(script[1]);
+      const nodes = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of nodes) {
+        const candidates = [node?.image, node?.thumbnailUrl, node?.primaryImageOfPage?.contentUrl];
+        for (const candidate of candidates) {
+          if (typeof candidate === "string") return candidate;
+          if (Array.isArray(candidate) && typeof candidate[0] === "string") return candidate[0];
+          if (candidate && typeof candidate === "object" && typeof candidate.url === "string") return candidate.url;
+        }
+      }
+    } catch {}
+  }
+  return undefined;
+}
+
+function firstSrcset(html: string): string | undefined {
+  const match = html.match(/<img[^>]+srcset=["']([^"']+)["']/i);
+  if (!match?.[1]) return undefined;
+  const candidates = match[1].split(",").map((part) => part.trim().split(/\s+/)[0]).filter(Boolean);
+  return candidates.at(-1);
+}
+
 function extractImage(html: string, pageUrl: string) {
   const raw =
     meta(html, "og:image") ??
     meta(html, "og:image:secure_url") ??
     meta(html, "twitter:image") ??
     meta(html, "twitter:image:src") ??
+    jsonLdImage(html) ??
     html.match(/["']image["']\s*:\s*["'](https?:\\?\/\\?\/[^"']+)["']/i)?.[1]?.replace(/\\\//g, "/") ??
+    html.match(/<img[^>]+(?:data-src|data-lazy-src)=["']([^"']+)["']/i)?.[1] ??
+    firstSrcset(html) ??
     html.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1];
 
   if (!raw) return undefined;
   try {
     const url = new URL(decodeHtml(raw), pageUrl);
     if (!/^https?:$/.test(url.protocol)) return undefined;
+    if (/\.(svg|gif)(?:$|\?)/i.test(url.pathname + url.search)) return undefined;
+    if (/logo|icon|avatar|sprite|placeholder|tracking|pixel/i.test(url.pathname)) return undefined;
     return url.toString();
   } catch {
     return undefined;
+  }
+}
+
+async function looksLikeImage(url: string) {
+  try {
+    const response = await fetch(url, { method: "HEAD", headers: HEADERS, redirect: "follow", signal: AbortSignal.timeout(7_000) });
+    if (!response.ok) return false;
+    const type = response.headers.get("content-type") || "";
+    return type.startsWith("image/") && !type.includes("svg") && !type.includes("gif");
+  } catch {
+    return true;
   }
 }
 
@@ -78,7 +120,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const response = await fetch(article.original_url, { headers: HEADERS, redirect: "follow", signal: AbortSignal.timeout(12_000) });
       if (!response.ok) { failed += 1; continue; }
       const imageUrl = extractImage(await response.text(), article.original_url);
-      if (!imageUrl) { skipped += 1; continue; }
+      if (!imageUrl || !(await looksLikeImage(imageUrl))) { skipped += 1; continue; }
       const update = await supabase.from("articles").update({ image_url: imageUrl }).eq("id", article.id);
       if (update.error) { failed += 1; continue; }
       updated += 1;
