@@ -6,6 +6,7 @@ export type StorySource = {
   logoUrl: string | null;
   headline: string;
   url: string;
+  websiteUrl: string | null;
   publishedAt: string | null;
 };
 export type StoryDetail = {
@@ -16,10 +17,16 @@ export type StoryDetail = {
   description: string | null;
   imageUrl: string | null;
   category: string;
+  categorySlug: string | null;
+  topics: Array<{ name: string; slug: string }>;
   source: string;
+  sourceSlug: string | null;
+  sourceWebsiteUrl: string | null;
   sourceCount: number;
-  regions: string[];
+  regions: Array<{ name: string; slug: string }>;
   published: string;
+  publishedAt: string | null;
+  originalUrl: string;
   sources: StorySource[];
 };
 
@@ -41,16 +48,19 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
     if (article.error) throw article.error;
     if (!article.data) return null;
     const a = article.data;
-    const [sourceResult, regionLinks, categoryLinks] = await Promise.all([
-      supabase.from("sources").select("id,name,slug,logo_url").eq("id", a.source_id).maybeSingle(),
+    const [sourceResult, regionLinks, categoryLinks, topicLinks] = await Promise.all([
+      supabase.from("sources").select("id,name,slug,logo_url,website_url").eq("id", a.source_id).maybeSingle(),
       supabase.from("article_regions").select("region_id").eq("article_id", a.id),
       supabase.from("article_categories").select("category_id").eq("article_id", a.id).limit(1),
+      supabase.from("article_topics").select("topic_id").eq("article_id", a.id),
     ]);
     const regionIds = (regionLinks.data ?? []).map((row) => row.region_id);
     const categoryIds = (categoryLinks.data ?? []).map((row) => row.category_id);
-    const [regionsResult, categoriesResult] = await Promise.all([
-      regionIds.length ? supabase.from("regions").select("id,name").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
-      categoryIds.length ? supabase.from("categories").select("id,name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
+    const topicIds = (topicLinks.data ?? []).map((row) => row.topic_id);
+    const [regionsResult, categoriesResult, topicsResult] = await Promise.all([
+      regionIds.length ? supabase.from("regions").select("id,name,slug").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
+      categoryIds.length ? supabase.from("categories").select("id,name,slug").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
+      topicIds.length ? supabase.from("topics").select("id,name,slug").in("id", topicIds) : Promise.resolve({ data: [], error: null }),
     ]);
     const leadSource = sourceResult.data;
     let sourceRows: StorySource[] = [{
@@ -59,13 +69,14 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
       logoUrl: leadSource?.logo_url || null,
       headline: a.title,
       url: a.original_url,
+      websiteUrl: leadSource?.website_url || null,
       publishedAt: a.published_at,
     }];
     if (a.story_cluster_id) {
       const peers = await supabase.from("articles").select("source_id,title,original_url,published_at").eq("story_cluster_id", a.story_cluster_id).eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(20);
       if (!peers.error && peers.data?.length) {
         const sourceIds = [...new Set(peers.data.map((peer) => peer.source_id))];
-        const peerSources = await supabase.from("sources").select("id,name,slug,logo_url").in("id", sourceIds);
+        const peerSources = await supabase.from("sources").select("id,name,slug,logo_url,website_url").in("id", sourceIds);
         const sourceMeta = new Map((peerSources.data ?? []).map((source) => [source.id, source]));
         sourceRows = peers.data.map((peer) => {
           const source = sourceMeta.get(peer.source_id);
@@ -75,11 +86,13 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
             logoUrl: source?.logo_url || null,
             headline: peer.title,
             url: peer.original_url,
+            websiteUrl: source?.website_url || null,
             publishedAt: peer.published_at,
           };
         });
       }
     }
+    const category = categoriesResult.data?.[0];
     return {
       articleId: a.id,
       slug: a.slug,
@@ -87,11 +100,17 @@ export async function getStoryBySlug(slug: string): Promise<StoryDetail | null> 
       summary: a.description || a.ai_summary || "Open the original publisher links for full coverage.",
       description: a.description,
       imageUrl: a.image_url,
-      category: categoriesResult.data?.[0]?.name || "News",
+      category: category?.name || "News",
+      categorySlug: category?.slug || null,
+      topics: (topicsResult.data ?? []).map((topic) => ({ name: topic.name, slug: topic.slug })),
       source: leadSource?.name || "Source",
+      sourceSlug: leadSource?.slug || null,
+      sourceWebsiteUrl: leadSource?.website_url || null,
       sourceCount: sourceRows.length,
-      regions: (regionsResult.data ?? []).map((region) => region.name),
+      regions: (regionsResult.data ?? []).map((region) => ({ name: region.name, slug: region.slug })),
       published: relativeTime(a.published_at || a.discovered_at),
+      publishedAt: a.published_at || a.discovered_at,
+      originalUrl: a.original_url,
       sources: sourceRows,
     };
   } catch (error) {
