@@ -37,7 +37,9 @@ function editorialRank(article: {
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
     const supabase = await createClient();
-    const fetchLimit = Math.max(limit * 4, 40);
+    // Fetch a wider window before applying the regional relation filter. This keeps
+    // lower-volume regions visible even when another region publishes heavily.
+    const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
     const { data: articles, error: articleError } = await supabase
       .from("articles")
       .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until")
@@ -52,6 +54,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
     const sourceIds = [...new Set(articles.map((article) => article.source_id))];
     const clusterIds = [...new Set(articles.map((article) => article.story_cluster_id).filter(Boolean))] as string[];
 
+    // Metadata enrichments should never make the whole public feed disappear.
     const [regionsResult, categoriesResult, sourcesResult, clustersResult] = await Promise.all([
       supabase.from("article_regions").select("article_id,region_id").in("article_id", articleIds),
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
@@ -59,40 +62,40 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       clusterIds.length ? supabase.from("story_clusters").select("id,article_count,trending_score").in("id", clusterIds) : Promise.resolve({ data: [], error: null }),
     ]);
 
-    if (regionsResult.error) throw regionsResult.error;
-    if (categoriesResult.error) throw categoriesResult.error;
-    if (sourcesResult.error) throw sourcesResult.error;
-    if (clustersResult.error) throw clustersResult.error;
+    const regionRows = regionsResult.error ? [] : (regionsResult.data ?? []);
+    const categoryRows = categoriesResult.error ? [] : (categoriesResult.data ?? []);
+    const sourceRows = sourcesResult.error ? [] : (sourcesResult.data ?? []);
+    const clusterRows = clustersResult.error ? [] : (clustersResult.data ?? []);
 
-    const regionIds = [...new Set((regionsResult.data ?? []).map((row) => row.region_id))];
-    const categoryIds = [...new Set((categoriesResult.data ?? []).map((row) => row.category_id))];
+    const regionIds = [...new Set(regionRows.map((row) => row.region_id))];
+    const categoryIds = [...new Set(categoryRows.map((row) => row.category_id))];
     const [regionMetaResult, categoryMetaResult] = await Promise.all([
       regionIds.length ? supabase.from("regions").select("id,slug").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
       categoryIds.length ? supabase.from("categories").select("id,name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
     ]);
 
-    if (regionMetaResult.error) throw regionMetaResult.error;
-    if (categoryMetaResult.error) throw categoryMetaResult.error;
+    const regionMetaRows = regionMetaResult.error ? [] : (regionMetaResult.data ?? []);
+    const categoryMetaRows = categoryMetaResult.error ? [] : (categoryMetaResult.data ?? []);
 
-    const regionSlugById = new Map((regionMetaResult.data ?? []).map((row) => [row.id, row.slug as RegionSlug]));
-    const categoryNameById = new Map((categoryMetaResult.data ?? []).map((row) => [row.id, row.name]));
-    const sourceNameById = new Map((sourcesResult.data ?? []).map((row) => [row.id, row.name]));
-    const clusterById = new Map((clustersResult.data ?? []).map((row) => [row.id, row]));
+    const regionSlugById = new Map(regionMetaRows.map((row) => [row.id, row.slug as RegionSlug]));
+    const categoryNameById = new Map(categoryMetaRows.map((row) => [row.id, row.name]));
+    const sourceNameById = new Map(sourceRows.map((row) => [row.id, row.name]));
+    const clusterById = new Map(clusterRows.map((row) => [row.id, row]));
 
     const regionsByArticle = new Map<string, RegionSlug[]>();
-    for (const row of regionsResult.data ?? []) {
+    for (const row of regionRows) {
       const slug = regionSlugById.get(row.region_id);
       if (!slug) continue;
       regionsByArticle.set(row.article_id, [...(regionsByArticle.get(row.article_id) ?? []), slug]);
     }
 
     const categoryByArticle = new Map<string, string>();
-    for (const row of categoriesResult.data ?? []) {
+    for (const row of categoryRows) {
       const category = categoryNameById.get(row.category_id);
       if (category && !categoryByArticle.has(row.article_id)) categoryByArticle.set(row.article_id, category);
     }
 
-    let mapped = articles.map((article) => {
+    const mapped = articles.map((article) => {
       const cluster = article.story_cluster_id ? clusterById.get(article.story_cluster_id) : undefined;
       return {
         slug: article.slug,
@@ -110,14 +113,18 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       };
     });
 
-    if (region) mapped = mapped.filter((story) => story.regions.includes(region));
+    const regional = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
+    // If regional metadata is temporarily unavailable, show the live stream rather
+    // than rendering a homepage with no posts.
+    const visible = region && regional.length === 0 ? mapped : regional;
+
     if (trending) {
-      mapped.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
+      visible.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
     } else {
-      mapped.sort((a, b) => b.editorialRank - a.editorialRank || b.publishedMs - a.publishedMs);
+      visible.sort((a, b) => b.editorialRank - a.editorialRank || b.publishedMs - a.publishedMs);
     }
 
-    return mapped.slice(0, limit).map(({ trendingScore: _trendingScore, editorialRank: _editorialRank, publishedMs: _publishedMs, ...story }) => story);
+    return visible.slice(0, limit).map(({ trendingScore: _trendingScore, editorialRank: _editorialRank, publishedMs: _publishedMs, ...story }) => story);
   } catch (error) {
     console.error("BridgeNews live story query failed.", error);
     return [];
