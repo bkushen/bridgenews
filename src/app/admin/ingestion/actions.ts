@@ -22,6 +22,8 @@ export async function runOperation(formData: FormData) {
   });
   if (error) throw error;
   revalidatePath("/admin/ingestion");
+  revalidatePath("/admin/images");
   revalidatePath("/admin/sources");
+  revalidatePath("/admin");
   revalidatePath("/");
 }
