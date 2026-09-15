@@ -24,7 +24,8 @@ BridgeNews is a multi-region news discovery portal focused on Sri Lanka, Austral
 - First-party privacy-conscious traffic analytics without IP storage
 - Daily Brief landing page and newsletter signup capture
 - Automatic social publishing queue for every public article
-- Metricool server-side fan-out to Facebook, Instagram, X, Threads and LinkedIn
+- Direct publishing to Facebook, Instagram, Threads, X and LinkedIn official APIs
+- Bulk social scheduling for existing public articles
 - Supabase Auth admin guard using `app_metadata.role = "admin"`
 - RLS and explicit privileged write boundaries
 
@@ -61,13 +62,22 @@ SUPABASE_SERVICE_ROLE_KEY=...
 INGEST_CRON_SECRET=...
 ```
 
-Metricool credentials belong in Supabase Edge Function secrets, not browser environment variables:
+Direct social credentials belong in Supabase Edge Function secrets, never browser environment variables:
 
 ```bash
-METRICOOL_USER_TOKEN=...
-METRICOOL_USER_ID=...
-METRICOOL_BLOG_ID=...
 BRIDGENEWS_SITE_URL=https://YOUR_PUBLIC_DOMAIN
+META_GRAPH_VERSION=v24.0
+FACEBOOK_PAGE_ID=...
+FACEBOOK_PAGE_ACCESS_TOKEN=...
+INSTAGRAM_ACCOUNT_ID=...
+META_PAGE_ACCESS_TOKEN=...
+THREADS_USER_ID=...
+THREADS_ACCESS_TOKEN=...
+THREADS_API_BASE=https://graph.threads.net/v1.0
+X_USER_ACCESS_TOKEN=...
+LINKEDIN_ACCESS_TOKEN=...
+LINKEDIN_ORGANIZATION_ID=...
+LINKEDIN_VERSION=202609
 ```
 
 ## Verification
@@ -95,7 +105,7 @@ Functions include:
 - `ingest-web` / `ingest-generic-web` — configured permitted public-web sources
 - `backfill-images` — verifies and recovers real publisher news images from Open Graph, Twitter, JSON-LD, lazy-image and srcset metadata
 - `backfill-source-logos` — source identity/logo maintenance
-- `social-publish` — schedules queued public stories through Metricool with retry/backoff
+- `social-publish` — publishes queued public stories directly to official social APIs with retry/backoff
 
 The admin live ingestion screen refreshes automatically and shows recently imported stories, source, region, status, times, image, original URL and processing errors. `/admin/images` manages the strict image-recovery queue.
 
@@ -114,15 +124,15 @@ Admin growth surfaces:
 
 - `/admin/traffic` — 24h/7d/30d traffic, top pages, referrers, campaigns and subscriber growth
 - `/admin/newsletter` — captured Daily Brief subscribers
-- `/admin/social` — auto-post configuration, queue status, retries and failures
+- `/admin/social` — auto-post configuration, direct API status, bulk scheduling, retries and failures
 
 ### Automatic social publishing
 
-When an article reaches `published` status and has its verified real image, a database trigger creates one social job per enabled platform. A Supabase cron job invokes `social-publish` every minute. The worker sends each job to Metricool with `autoPublish=true`, schedules it roughly two minutes ahead, records the provider response and retries temporary failures with exponential backoff.
+When an article reaches `published` status and has its verified real image, a database trigger creates one social job per enabled platform. A Supabase cron job invokes `social-publish` every minute. The worker posts directly to Facebook Pages, Instagram Business/Creator publishing, Threads, X API v2 and LinkedIn Posts API. Provider IDs/responses are stored in the queue and temporary failures retry with exponential backoff.
 
-Supported BridgeNews platform keys are Facebook, Instagram, X, Threads and LinkedIn. X is mapped to Metricool's `twitter` provider. Each social link contains UTM parameters so `/admin/traffic` can attribute visits back to the network.
+Each social link contains UTM parameters so `/admin/traffic` can attribute visits back to the network. `/admin/social` also includes a bulk scheduler for older public articles, allowing a count, lookback window, start delay, spacing interval and selected networks.
 
-The publishing credentials are intentionally server-only. Configure them as Supabase Edge Function secrets before enabling production auto-posting.
+The publishing credentials are intentionally server-only. Configure them as Supabase Edge Function secrets before enabling production auto-posting. X requires a user-context access token that can create Posts. LinkedIn organization publishing requires the correct organization permission for the authenticated member/app.
 
 ## Editorial workflow
 
@@ -161,5 +171,5 @@ After deployment verify:
 5. `/sitemap.xml`, `/news-sitemap.xml` and `/robots.txt` resolve.
 6. `/brief` loads current regional coverage and newsletter signup works.
 7. A story page has title/description/Open Graph/NewsArticle metadata and working original publisher links.
-8. Publish a test article and confirm the selected `/admin/social` jobs move from `queued` to `scheduled` after the next cron run.
+8. Publish a test article and confirm the selected `/admin/social` jobs move from `queued` to `published` after the next successful direct-API cron run.
 9. Source health contains no enabled source above the failure threshold.
