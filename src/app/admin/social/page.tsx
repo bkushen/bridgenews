@@ -7,11 +7,12 @@ const PLATFORMS=["facebook","instagram","x","threads","linkedin"] as const;
 
 export default async function SocialQueuePage(){
   const admin=createAdminClient();
-  const [{data},{data:config},{count:queued},{count:scheduled},{count:failed},{count:published}]=await Promise.all([
+  const now=new Date().toISOString();
+  const [{data},{data:config},{count:queued},{count:futureScheduled},{count:failed},{count:published}]=await Promise.all([
     admin.from("social_post_queue").select("id,platform,status,post_text,created_at,scheduled_for,published_at,error_message,attempts,provider_post_id,external_url,articles(id,slug,title,image_url,published_at,sources(name))").order("created_at",{ascending:false}).limit(200),
     admin.from("social_publish_config").select("enabled,platforms,attach_article_image,timezone,max_attempts,updated_at").eq("id",1).maybeSingle(),
-    admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","queued"),
-    admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","scheduled"),
+    admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","queued").or(`scheduled_for.is.null,scheduled_for.lte.${now}`),
+    admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","queued").gt("scheduled_for",now),
     admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","failed"),
     admin.from("social_post_queue").select("id",{count:"exact",head:true}).eq("status","published"),
   ]);
@@ -24,7 +25,7 @@ export default async function SocialQueuePage(){
       <div className="flex flex-wrap gap-2"><form action={runAutoSocialNow}><button className="rounded-xl bg-black px-4 py-2.5 text-sm font-black text-white">Run publisher now</button></form><form action={queueRecentPublishedStories}><button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700">Queue latest 25</button></form></div>
     </div>
 
-    <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Waiting" value={queued??0}/><Metric label="Scheduled" value={scheduled??0}/><Metric label="Failed" value={failed??0} attention={(failed??0)>0}/><Metric label="Published" value={published??0}/></section>
+    <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Due now" value={queued??0}/><Metric label="Future scheduled" value={futureScheduled??0}/><Metric label="Failed" value={failed??0} attention={(failed??0)>0}/><Metric label="Published" value={published??0}/></section>
 
     <section className="mt-7 grid gap-5 xl:grid-cols-[1fr_.9fr]">
       <form action={updateAutoSocialConfig} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
