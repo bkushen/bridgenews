@@ -23,7 +23,8 @@ BridgeNews is a multi-region news discovery portal focused on Sri Lanka, Austral
 - Search Console/Bing verification hooks and optional GA4
 - First-party privacy-conscious traffic analytics without IP storage
 - Daily Brief landing page and newsletter signup capture
-- Social publishing queue for highlighted/breaking stories
+- Automatic social publishing queue for every public article
+- Metricool server-side fan-out to Facebook, Instagram, X, Threads and LinkedIn
 - Supabase Auth admin guard using `app_metadata.role = "admin"`
 - RLS and explicit privileged write boundaries
 
@@ -60,6 +61,15 @@ SUPABASE_SERVICE_ROLE_KEY=...
 INGEST_CRON_SECRET=...
 ```
 
+Metricool credentials belong in Supabase Edge Function secrets, not browser environment variables:
+
+```bash
+METRICOOL_USER_TOKEN=...
+METRICOOL_USER_ID=...
+METRICOOL_BLOG_ID=...
+BRIDGENEWS_SITE_URL=https://YOUR_PUBLIC_DOMAIN
+```
+
 ## Verification
 
 Before merging or deploying:
@@ -73,7 +83,7 @@ GitHub Actions runs both checks for pull requests to `main`.
 
 ## Database
 
-Apply the committed `supabase/migrations` files in order. The current schema includes editorial placement, non-AI clustering, strict publisher-image enforcement, source health controls, first-party traffic events, newsletter subscribers and the social publishing queue.
+Apply the committed `supabase/migrations` files in order. The current schema includes editorial placement, non-AI clustering, strict publisher-image enforcement, source health controls, first-party traffic events, newsletter subscribers and the automatic social publishing queue.
 
 Privileged writes remain behind server/admin access. Public analytics and newsletter requests go through validated Next.js server routes; the database tables themselves are not opened for anonymous direct writes.
 
@@ -85,6 +95,7 @@ Functions include:
 - `ingest-web` / `ingest-generic-web` — configured permitted public-web sources
 - `backfill-images` — verifies and recovers real publisher news images from Open Graph, Twitter, JSON-LD, lazy-image and srcset metadata
 - `backfill-source-logos` — source identity/logo maintenance
+- `social-publish` — schedules queued public stories through Metricool with retry/backoff
 
 The admin live ingestion screen refreshes automatically and shows recently imported stories, source, region, status, times, image, original URL and processing errors. `/admin/images` manages the strict image-recovery queue.
 
@@ -103,9 +114,15 @@ Admin growth surfaces:
 
 - `/admin/traffic` — 24h/7d/30d traffic, top pages, referrers, campaigns and subscriber growth
 - `/admin/newsletter` — captured Daily Brief subscribers
-- `/admin/social` — automatically queued breaking/featured/main-headline stories for social review
+- `/admin/social` — auto-post configuration, queue status, retries and failures
 
-Actual newsletter delivery and automatic posting to third-party social platforms require authenticated external providers. BridgeNews deliberately records queue/approval state without claiming delivery or publication until those providers are connected.
+### Automatic social publishing
+
+When an article reaches `published` status and has its verified real image, a database trigger creates one social job per enabled platform. A Supabase cron job invokes `social-publish` every minute. The worker sends each job to Metricool with `autoPublish=true`, schedules it roughly two minutes ahead, records the provider response and retries temporary failures with exponential backoff.
+
+Supported BridgeNews platform keys are Facebook, Instagram, X, Threads and LinkedIn. X is mapped to Metricool's `twitter` provider. Each social link contains UTM parameters so `/admin/traffic` can attribute visits back to the network.
+
+The publishing credentials are intentionally server-only. Configure them as Supabase Edge Function secrets before enabling production auto-posting.
 
 ## Editorial workflow
 
@@ -139,9 +156,10 @@ After deployment verify:
 
 1. `/` loads real published data.
 2. `/admin` requires an admin account.
-3. `/admin/ingestion`, `/admin/images` and `/admin/traffic` load real operational data.
+3. `/admin/ingestion`, `/admin/images`, `/admin/traffic` and `/admin/social` load real operational data.
 4. `/search` filters across region/language/source/category/topic/date.
 5. `/sitemap.xml`, `/news-sitemap.xml` and `/robots.txt` resolve.
 6. `/brief` loads current regional coverage and newsletter signup works.
 7. A story page has title/description/Open Graph/NewsArticle metadata and working original publisher links.
-8. Source health contains no enabled source above the failure threshold.
+8. Publish a test article and confirm the selected `/admin/social` jobs move from `queued` to `scheduled` after the next cron run.
+9. Source health contains no enabled source above the failure threshold.
