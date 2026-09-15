@@ -4,6 +4,27 @@ set enabled = false
 where enabled = true
   and consecutive_failures >= 12;
 
+-- Enforce the same guard for every ingestion adapter, not just RSS.
+create or replace function public.enforce_source_failure_pause()
+returns trigger
+language plpgsql
+set search_path = 'public'
+as $$
+begin
+  if new.consecutive_failures >= 12 and coalesce(old.consecutive_failures, 0) < 12 then
+    new.enabled := false;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists sources_auto_pause_failures on public.sources;
+create trigger sources_auto_pause_failures
+before update of consecutive_failures on public.sources
+for each row execute function public.enforce_source_failure_pause();
+
+revoke all on function public.enforce_source_failure_pause() from public, anon, authenticated;
+
 -- Add a dedicated Tamil News21 source from its official current RSS endpoint.
 with upserted as (
   insert into public.sources (
