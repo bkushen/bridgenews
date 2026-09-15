@@ -26,13 +26,14 @@ const QUICK_ACTIONS = [
 export default async function AdminPage() {
   const admin = createAdminClient();
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const [articles, published24h, sources, activeSources, unhealthySources, missingImages, breaking, featured, audit] = await Promise.all([
+  const [articles, published, published24h, sources, activeSources, unhealthySources, missingImages, breaking, featured, audit] = await Promise.all([
     count("articles"),
+    count("articles", (q) => q.eq("status", "published")),
     count("articles", (q) => q.eq("status", "published").gte("published_at", since24h)),
     count("sources"),
     count("sources", (q) => q.eq("enabled", true)),
     count("sources", (q) => q.eq("enabled", true).gt("consecutive_failures", 0)),
-    count("articles", (q) => q.eq("status", "published").is("image_url", null)),
+    count("articles", (q) => q.eq("status", "published").or("image_url.is.null,image_url.eq.")),
     count("articles", (q) => q.eq("status", "published").eq("is_breaking", true)),
     count("articles", (q) => q.eq("status", "published").eq("is_featured", true)),
     count("admin_audit_log"),
@@ -45,13 +46,14 @@ export default async function AdminPage() {
 
   const recentErrors = (latestRuns ?? []).filter((run: any) => run.error_message || Number(run.failed_count) > 0).length;
   const sourceHealth = unhealthySources === 0 ? "All healthy" : `${unhealthySources} need attention`;
+  const imageCoverage = Math.max(0, Math.round(((published - missingImages) / Math.max(published, 1)) * 100));
 
   return <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 xl:px-10">
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Dashboard</h1><p className="mt-1 text-sm text-slate-500">Live publishing status and the tasks that need your attention.</p></div><div className="flex gap-2"><Link href="/admin/articles/new" className="rounded-xl bg-black px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">+ New article</Link><Link href="/admin/ingestion" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50">Live monitor</Link></div></div>
 
     {(unhealthySources > 0 || recentErrors > 0 || missingImages > 0) ? <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-amber-700 ring-1 ring-amber-200"><AdminIcon name="health" className="h-5 w-5" /></span><div><p className="text-sm font-black text-amber-950">Attention needed</p><p className="mt-0.5 text-xs leading-5 text-amber-800">{unhealthySources} enabled source{unhealthySources === 1 ? "" : "s"} reporting failures · {missingImages.toLocaleString()} published stories missing images.</p></div></div><Link href="/admin/source-tools" className="shrink-0 rounded-xl border border-amber-300 bg-white px-3.5 py-2 text-xs font-black text-amber-900 hover:bg-amber-100">Review health</Link></div></section> : null}
 
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Published today" value={published24h.toLocaleString()} sub={`${articles.toLocaleString()} total articles`} href="/admin/articles" icon="articles"/><StatCard label="Active sources" value={`${activeSources}/${sources}`} sub={sourceHealth} href="/admin/sources" icon="sources" attention={unhealthySources > 0}/><StatCard label="Editorial picks" value={breaking + featured} sub={`${breaking} breaking · ${featured} featured`} href="/admin/articles" icon="official"/><StatCard label="Image coverage" value={`${Math.max(0, Math.round(((articles - missingImages) / Math.max(articles, 1)) * 100))}%`} sub={`${missingImages.toLocaleString()} need image recovery`} href="/admin/ingestion" icon="health" attention={missingImages > 0}/></section>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Published today" value={published24h.toLocaleString()} sub={`${articles.toLocaleString()} total articles`} href="/admin/articles" icon="articles"/><StatCard label="Active sources" value={`${activeSources}/${sources}`} sub={sourceHealth} href="/admin/sources" icon="sources" attention={unhealthySources > 0}/><StatCard label="Editorial picks" value={breaking + featured} sub={`${breaking} breaking · ${featured} featured`} href="/admin/articles" icon="official"/><StatCard label="Image coverage" value={`${imageCoverage}%`} sub={`${missingImages.toLocaleString()} need image recovery`} href="/admin/ingestion" icon="health" attention={missingImages > 0}/></section>
 
     <section className="mt-7"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-lg font-black text-slate-950">Quick actions</h2><p className="mt-0.5 text-xs text-slate-500">Most-used admin tasks</p></div></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{QUICK_ACTIONS.map(([title, sub, href, icon]) => <Link key={href} href={href} className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:bg-black group-hover:text-white"><AdminIcon name={icon} className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="font-black text-slate-950">{title}</p><p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p></div><span className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-black">→</span></Link>)}</div></section>
 
