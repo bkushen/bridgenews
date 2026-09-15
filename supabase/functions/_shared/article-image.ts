@@ -33,7 +33,7 @@ function normalizeImageUrl(raw:string|undefined|null,pageUrl:string):string|null
     const url=new URL(decodeHtml(raw).replace(/\\\//g,"/"),pageUrl),path=`${url.hostname}${url.pathname}${url.search}`;
     if(!/^https?:$/.test(url.protocol))return null;
     if(/\.(svg|gif)(?:$|\?)/i.test(path))return null;
-    if(/(?:logo|favicon|site[-_]?icon|avatar|sprite|placeholder|tracking|pixel|branding|masthead|default[-_]?image|ebadge|bestweb|award[-_]?badge|\/badge)/i.test(path))return null;
+    if(/(?:logo|favicon|site[-_]?icon|avatar|sprite|placeholder|tracking|pixel|branding|masthead|default[-_]?image|ebadge|bestweb|award[-_]?badge|\/badge|image_8df7de9e07)/i.test(path))return null;
     if(/atrk\.gif/i.test(path))return null;
     return url.toString();
   }catch{return null;}
