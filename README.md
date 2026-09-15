@@ -1,23 +1,29 @@
-# BridgeNews starter
+# BridgeNews
 
-A smart news/content discovery platform focused on Sri Lanka, Australia and International coverage.
+BridgeNews is a multi-region news discovery portal focused on Sri Lanka, Australia and international coverage. It aggregates publisher metadata and snippets, links readers back to original publishers, and includes a full administration workspace for content, sources, homepage controls, ingestion and system health.
 
-## Included now
+## Current production features
 
-- Next.js 16 App Router starter
-- Region navigation and multi-region mock stories
-- Home, Latest, Trending, Topics, Story and Admin pages
-- Admin source management with preview fallback and live server-side CRUD when Supabase is configured
-- Supabase Auth admin login/guard using `app_metadata.role = "admin"`
-- Supabase browser/server client helpers
-- PostgreSQL schema for regions, categories, sources, articles, story clusters, topics and ingestion runs
-- Per-source region defaults
-- RSS ingestion Edge Function supporting RSS and Atom
-- Canonical URL + source external-ID duplicate prevention
-- Feed health/error tracking
-- Review-first vs automatic publishing mode
-- pgvector-ready story cluster embeddings
-- RLS + explicit grants for public read-only editorial data
+- Next.js 16 App Router / React 19
+- Sri Lanka, Australia and International region browsing
+- English, Sinhala and Tamil source coverage
+- Automated RSS and permitted public-web ingestion
+- Live ingestion monitor with imported article details
+- Source health/error tracking and automatic pause after repeated failures
+- Canonical URL and external-ID duplicate prevention
+- Non-AI rule/category processing and headline story clustering
+- Manual Main Headline, Breaking, Featured, priority and timed pin controls
+- Homepage section ordering/visibility controls
+- Article, source, category, topic, region, official-source, video, user and settings administration
+- Public search with region, language, publisher, category, topic and date filters
+- Story pages with publisher attribution, related coverage, SEO/social metadata and original-source links
+- Article image extraction/backfill with branded fallbacks
+- Reader bookmarks/follows and article view metrics
+- Sitemap, robots and SEO settings
+- Supabase Auth admin guard using `app_metadata.role = "admin"`
+- RLS and explicit public read/admin write policies
+
+**AI enrichment is intentionally disabled for the current BridgeNews release.** Ingestion and publishing work without an AI provider.
 
 ## Local start
 
@@ -27,40 +33,82 @@ npm install
 npm run dev
 ```
 
-The UI runs with mock data even before Supabase is connected.
+Required browser/server variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Server/Edge-only values must never use a `NEXT_PUBLIC_` prefix:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=...
+INGEST_CRON_SECRET=...
+```
+
+## Verification
+
+Before merging or deploying:
+
+```bash
+npm run typecheck
+npm run build
+```
+
+GitHub Actions runs both checks for pull requests to `main`.
 
 ## Database
 
-Review and apply migrations in order:
+Apply the committed `supabase/migrations` files in order. The latest migrations add editorial placement, stronger non-AI clustering, source auto-pause protection and expanded Tamil source coverage.
 
-1. `supabase/migrations/0001_initial_schema.sql`
-2. `supabase/migrations/0002_ingestion_pipeline.sql`
-3. `supabase/migrations/0003_ai_pipeline.sql`
+The production schema keeps privileged writes behind authenticated admin policies. Edge ingestion uses the Supabase service-role key only in the server-side function environment.
 
-The schema intentionally keeps source-management and ingestion-log tables inaccessible to browser roles. Server-side ingestion must use a server-only Supabase secret/service-role key.
+## Ingestion
 
-## RSS ingestion
+Functions include:
 
-Function: `supabase/functions/ingest-rss`
+- `ingest-rss` — RSS/Atom ingestion, duplicate prevention, health tracking and auto-pause
+- `ingest-web` / `ingest-generic-web` — configured permitted public-web sources
+- `backfill-images` — recovers missing publisher thumbnails using Open Graph, Twitter, JSON-LD, lazy-image and srcset metadata
+- `backfill-source-logos` — source identity/logo maintenance
 
-It loads enabled RSS sources, fetches RSS/Atom XML, normalizes canonical URLs, inserts unseen articles only, assigns regions, and records ingestion health.
+The admin live ingestion screen refreshes automatically and shows recently imported stories, source, region, status, times, image, original URL and processing errors.
 
-## AI enrichment and story clustering
+## Editorial workflow
 
-The `process-articles` Edge Function enriches newly ingested feed items using server-side OpenAI API calls. It generates a concise neutral summary, detects Sri Lanka/Australia/International relevance, assigns a category and topics, creates a 1536-dimensional embedding, and groups semantically similar reporting into one `story_cluster`.
+Admin → Articles supports:
 
-Required Edge Function secrets:
+- publish/review/reject state
+- headline and description edits
+- category/topic assignment
+- **Main Headline**
+- **Breaking**
+- **Featured**
+- priority from 0–100
+- optional pin expiry
+
+Public homepage ranking respects editorial placement first, then freshness/trending signals.
+
+## Production deployment
+
+For Vercel (or another Next.js host), configure at minimum:
 
 ```bash
-OPENAI_API_KEY=...
-OPENAI_CLASSIFICATION_MODEL=gpt-5-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-PROCESS_CRON_SECRET=...
-STORY_CLUSTER_THRESHOLD=0.86
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SITE_URL=https://YOUR_PUBLIC_DOMAIN
 ```
 
-Pipeline:
+Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the browser. Supabase Edge Function secrets remain configured in Supabase, not as public Vercel variables.
 
-```text
-RSS ingestion -> processing -> AI summary/classification -> embedding -> cluster match/create -> published or review_required
-```
+After deployment verify:
+
+1. `/` loads real published data.
+2. `/admin` requires an admin account.
+3. `/admin/ingestion` shows live imports.
+4. `/search` filters across region/language/source/category/topic/date.
+5. `/sitemap.xml` and `/robots.txt` resolve.
+6. A story page has title/description/Open Graph metadata and working original publisher links.
+7. Source health contains no enabled source above the failure threshold.
