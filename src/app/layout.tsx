@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./editorial-theme.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -31,5 +32,5 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const control = await getSiteControl();
   const siteName = String(control.settings.site_name ?? "BridgeNews");
   const maintenance = control.settings.maintenance_mode === true;
-  return <html lang="en"><body><MaintenanceGate enabled={maintenance} siteName={siteName}><LiveAutoRefresh intervalMs={60000}/><PublicOnly><SiteHeader/></PublicOnly>{children}<PublicOnly><SiteFooter siteName={siteName}/></PublicOnly></MaintenanceGate></body></html>;
+  return <html lang="en"><body className="site-root"><MaintenanceGate enabled={maintenance} siteName={siteName}><LiveAutoRefresh intervalMs={60000}/><PublicOnly><SiteHeader/></PublicOnly>{children}<PublicOnly><SiteFooter siteName={siteName}/></PublicOnly></MaintenanceGate></body></html>;
 }
