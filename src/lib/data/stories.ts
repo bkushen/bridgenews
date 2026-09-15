@@ -19,13 +19,28 @@ function relativeTime(value: string | null) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
+function editorialRank(article: {
+  is_main_headline?: boolean | null;
+  is_breaking?: boolean | null;
+  is_featured?: boolean | null;
+  editorial_priority?: number | null;
+  pinned_until?: string | null;
+}) {
+  const pinned = article.pinned_until ? new Date(article.pinned_until).getTime() > Date.now() : false;
+  return (article.is_main_headline ? 100000 : 0)
+    + (article.is_breaking ? 50000 : 0)
+    + (article.is_featured ? 20000 : 0)
+    + (pinned ? 10000 : 0)
+    + Number(article.editorial_priority ?? 0);
+}
+
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
     const supabase = await createClient();
-    const fetchLimit = Math.max(limit * 3, 30);
+    const fetchLimit = Math.max(limit * 4, 40);
     const { data: articles, error: articleError } = await supabase
       .from("articles")
-      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at")
+      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until")
       .eq("status", "published")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchLimit);
@@ -90,12 +105,19 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         sourceCount: Number(cluster?.article_count ?? 1),
         imageUrl: article.image_url,
         trendingScore: Number(cluster?.trending_score ?? 0),
+        editorialRank: editorialRank(article),
+        publishedMs: new Date(article.published_at || article.discovered_at || 0).getTime(),
       };
     });
 
     if (region) mapped = mapped.filter((story) => story.regions.includes(region));
-    if (trending) mapped.sort((a, b) => b.trendingScore - a.trendingScore);
-    return mapped.slice(0, limit).map(({ trendingScore: _trendingScore, ...story }) => story);
+    if (trending) {
+      mapped.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
+    } else {
+      mapped.sort((a, b) => b.editorialRank - a.editorialRank || b.publishedMs - a.publishedMs);
+    }
+
+    return mapped.slice(0, limit).map(({ trendingScore: _trendingScore, editorialRank: _editorialRank, publishedMs: _publishedMs, ...story }) => story);
   } catch (error) {
     console.error("BridgeNews live story query failed.", error);
     return [];
