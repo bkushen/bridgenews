@@ -1,12 +1,23 @@
+export type HourlyWeatherPoint = {
+  time: string;
+  temperature: number | null;
+  weatherCode: number | null;
+  emoji: string;
+};
+
 export type WeatherCardData = {
   city: string;
   emoji: string;
+  condition: string;
   temperature: number | null;
   apparentTemperature: number | null;
   weatherCode: number | null;
   windSpeed: number | null;
   high: number | null;
   low: number | null;
+  sunrise: string | null;
+  sunset: string | null;
+  hourly: HourlyWeatherPoint[];
 };
 
 export type ExchangeStripData = {
@@ -16,7 +27,7 @@ export type ExchangeStripData = {
   updatedAt: string | null;
 };
 
-function weatherEmoji(code: number | null) {
+export function weatherEmoji(code: number | null) {
   if (code == null) return "🌤️";
   if (code === 0) return "☀️";
   if ([1, 2].includes(code)) return "🌤️";
@@ -29,13 +40,27 @@ function weatherEmoji(code: number | null) {
   return "🌤️";
 }
 
+function weatherCondition(code: number | null) {
+  if (code == null) return "Forecast unavailable";
+  if (code === 0) return "Clear sky";
+  if ([1, 2].includes(code)) return "Partly cloudy";
+  if (code === 3) return "Overcast";
+  if ([45, 48].includes(code)) return "Foggy";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorms";
+  return "Mixed conditions";
+}
+
 async function getWeather(city: string, latitude: number, longitude: number, timezone: string): Promise<WeatherCardData> {
   try {
     const params = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
       current: "temperature_2m,apparent_temperature,weather_code,wind_speed_10m",
-      daily: "temperature_2m_max,temperature_2m_min",
+      hourly: "temperature_2m,weather_code",
+      daily: "temperature_2m_max,temperature_2m_min,sunrise,sunset",
       timezone,
       forecast_days: "1",
     });
@@ -43,18 +68,37 @@ async function getWeather(city: string, latitude: number, longitude: number, tim
     if (!response.ok) throw new Error(`Weather HTTP ${response.status}`);
     const data = await response.json();
     const code = typeof data?.current?.weather_code === "number" ? data.current.weather_code : null;
+    const now = Date.now();
+    const hourlyTimes = Array.isArray(data?.hourly?.time) ? data.hourly.time : [];
+    const hourlyTemps = Array.isArray(data?.hourly?.temperature_2m) ? data.hourly.temperature_2m : [];
+    const hourlyCodes = Array.isArray(data?.hourly?.weather_code) ? data.hourly.weather_code : [];
+    const firstFuture = Math.max(0, hourlyTimes.findIndex((value: string) => new Date(value).getTime() >= now));
+    const hourly = hourlyTimes.slice(firstFuture, firstFuture + 5).map((time: string, index: number) => {
+      const absoluteIndex = firstFuture + index;
+      const pointCode = typeof hourlyCodes[absoluteIndex] === "number" ? hourlyCodes[absoluteIndex] : null;
+      return {
+        time,
+        temperature: typeof hourlyTemps[absoluteIndex] === "number" ? hourlyTemps[absoluteIndex] : null,
+        weatherCode: pointCode,
+        emoji: weatherEmoji(pointCode),
+      };
+    });
     return {
       city,
       emoji: weatherEmoji(code),
+      condition: weatherCondition(code),
       temperature: typeof data?.current?.temperature_2m === "number" ? data.current.temperature_2m : null,
       apparentTemperature: typeof data?.current?.apparent_temperature === "number" ? data.current.apparent_temperature : null,
       weatherCode: code,
       windSpeed: typeof data?.current?.wind_speed_10m === "number" ? data.current.wind_speed_10m : null,
       high: typeof data?.daily?.temperature_2m_max?.[0] === "number" ? data.daily.temperature_2m_max[0] : null,
       low: typeof data?.daily?.temperature_2m_min?.[0] === "number" ? data.daily.temperature_2m_min[0] : null,
+      sunrise: typeof data?.daily?.sunrise?.[0] === "string" ? data.daily.sunrise[0] : null,
+      sunset: typeof data?.daily?.sunset?.[0] === "string" ? data.daily.sunset[0] : null,
+      hourly,
     };
   } catch {
-    return { city, emoji: "🌤️", temperature: null, apparentTemperature: null, weatherCode: null, windSpeed: null, high: null, low: null };
+    return { city, emoji: "🌤️", condition: "Forecast unavailable", temperature: null, apparentTemperature: null, weatherCode: null, windSpeed: null, high: null, low: null, sunrise: null, sunset: null, hourly: [] };
   }
 }
 
@@ -92,4 +136,11 @@ export function formatCityTime(timeZone: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date());
+}
+
+export function formatClock(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
