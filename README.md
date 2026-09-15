@@ -132,7 +132,7 @@ When an article reaches `published` status and has its verified real image, a da
 
 Each social link contains UTM parameters so `/admin/traffic` can attribute visits back to the network. `/admin/social` also includes a bulk scheduler for older public articles, allowing a count, lookback window, start delay, spacing interval and selected networks.
 
-The publishing credentials are intentionally server-only. Configure them as Supabase Edge Function secrets before enabling production auto-posting. X requires a user-context access token that can create Posts. LinkedIn organization publishing requires the correct organization permission for the authenticated member/app.
+The publishing credentials are intentionally server-only. Configure them as Supabase Edge Function secrets before enabling production auto-posting. A platform with missing credentials is skipped by the worker without consuming retry attempts, so its jobs remain queued until that account is connected. X requires a user-context access token that can create Posts. LinkedIn organization publishing requires the correct organization permission for the authenticated member/app.
 
 ## Editorial workflow
 
