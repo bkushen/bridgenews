@@ -62,8 +62,8 @@ export function AnalyticsTracker() {
         });
       } catch {}
     };
-    document.addEventListener("click", onClick, { capture: true });
-    return () => document.removeEventListener("click", onClick, { capture: true } as AddEventListenerOptions);
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, []);
 
   return null;
