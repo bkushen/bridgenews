@@ -58,10 +58,11 @@ function normalizeImageUrl(raw: string | undefined | null, pageUrl: string): str
   if (!raw) return null;
   try {
     const url = new URL(decodeHtml(raw).replace(/\\\//g, "/"), pageUrl);
-    const path = `${url.pathname}${url.search}`;
+    const path = `${url.hostname}${url.pathname}${url.search}`;
     if (!/^https?:$/.test(url.protocol)) return null;
     if (/\.(svg|gif)(?:$|\?)/i.test(path)) return null;
-    if (/(?:logo|favicon|site[-_]?icon|avatar|sprite|placeholder|tracking|pixel|branding|masthead|default[-_]?image)/i.test(path)) return null;
+    if (/(?:logo|favicon|site[-_]?icon|avatar|sprite|placeholder|tracking|pixel|branding|masthead|default[-_]?image|ebadge|bestweb|award[-_]?badge|\/badge)/i.test(path)) return null;
+    if (/atrk\.gif/i.test(path)) return null;
     return url.toString();
   } catch {
     return null;
