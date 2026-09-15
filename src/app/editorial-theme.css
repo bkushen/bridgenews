@@ -12,6 +12,12 @@
 }
 
 .site-root {
+  --background: var(--news-paper);
+  --foreground: var(--news-ink);
+  --surface: var(--news-card);
+  --muted: var(--news-muted);
+  --border: var(--news-line);
+  --brand: var(--news-accent);
   background:
     linear-gradient(180deg, rgba(255,255,255,.5), transparent 18rem),
     var(--news-paper);
@@ -19,102 +25,71 @@
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.site-root ::selection {
-  background: var(--news-accent);
-  color: #fffaf5;
-}
-
+.site-root ::selection { background: var(--news-accent); color: #fffaf5; }
 .site-root h1,
 .site-root h2,
-.site-root h3 {
-  font-family: Georgia, "Times New Roman", Times, serif;
-  letter-spacing: -0.025em;
-}
-
+.site-root h3 { font-family: Georgia, "Times New Roman", Times, serif; letter-spacing: -0.025em; }
 .site-root a { text-underline-offset: 3px; }
+.site-root img { max-width: 100%; }
 
 [data-public-header] {
   background: rgba(255,253,248,.96) !important;
   border-color: var(--news-line) !important;
   box-shadow: 0 1px 0 rgba(53,42,31,.04);
 }
-
-[data-public-header] .news-wordmark {
-  font-family: Georgia, "Times New Roman", Times, serif;
-  letter-spacing: -0.035em;
-}
-
-[data-public-header] .news-search {
-  background: #fbf7f0 !important;
-  border-color: var(--news-line) !important;
-}
-
-[data-public-header] .news-search:focus {
-  border-color: var(--news-accent) !important;
-  box-shadow: 0 0 0 3px rgba(165,35,47,.09);
-}
-
-[data-public-header] .news-signin {
-  background: var(--news-ink) !important;
-  color: #fffdf8 !important;
-}
-
+[data-public-header] .news-wordmark { font-family: Georgia, "Times New Roman", Times, serif; letter-spacing: -0.035em; }
+[data-public-header] .news-search { background: #fbf7f0 !important; border-color: var(--news-line) !important; }
+[data-public-header] .news-search:focus { border-color: var(--news-accent) !important; box-shadow: 0 0 0 3px rgba(165,35,47,.09); }
+[data-public-header] .news-signin { background: var(--news-ink) !important; color: #fffdf8 !important; }
 [data-public-header] .news-signin:hover { background: var(--news-accent-deep) !important; }
 [data-public-header] .news-nav-link:hover,
 [data-public-header] .news-language-link:hover { color: var(--news-accent) !important; }
 
-[data-public-footer] {
-  background: #201d1a !important;
-  border-color: #201d1a !important;
-  color: #f5efe6;
-}
-
+[data-public-footer] { background: #201d1a !important; border-color: #201d1a !important; color: #f5efe6; }
 [data-public-footer] .news-footer-muted { color: #c9c0b5 !important; }
 [data-public-footer] .news-footer-link:hover { color: #ffffff !important; }
 
-/* Public news surfaces across the site. The admin main uses .admin-content and is excluded. */
-.site-root main:not(.admin-content) .bg-white { background-color: var(--news-card) !important; }
-.site-root main:not(.admin-content) .bg-slate-50,
-.site-root main:not(.admin-content) .bg-gray-50 { background-color: #f4eee5 !important; }
-.site-root main:not(.admin-content) .border-slate-100,
-.site-root main:not(.admin-content) .border-gray-100 { border-color: var(--news-line-soft) !important; }
-.site-root main:not(.admin-content) .border-slate-200,
-.site-root main:not(.admin-content) .border-gray-200 { border-color: var(--news-line) !important; }
-.site-root main:not(.admin-content) .text-slate-950,
-.site-root main:not(.admin-content) .text-slate-900,
-.site-root main:not(.admin-content) .text-gray-950,
-.site-root main:not(.admin-content) .text-gray-900 { color: var(--news-ink) !important; }
-.site-root main:not(.admin-content) .text-slate-700,
-.site-root main:not(.admin-content) .text-slate-600,
-.site-root main:not(.admin-content) .text-slate-500,
-.site-root main:not(.admin-content) .text-gray-700,
-.site-root main:not(.admin-content) .text-gray-600,
-.site-root main:not(.admin-content) .text-gray-500 { color: var(--news-muted) !important; }
-.site-root main:not(.admin-content) .text-rose-700,
-.site-root main:not(.admin-content) .text-red-600,
-.site-root main:not(.admin-content) .text-red-700 { color: var(--news-accent) !important; }
-.site-root main:not(.admin-content) .bg-rose-600,
-.site-root main:not(.admin-content) .bg-red-600 { background-color: var(--news-accent) !important; }
-.site-root main:not(.admin-content) .hover\:text-rose-700:hover,
-.site-root main:not(.admin-content) .hover\:text-red-700:hover { color: var(--news-accent-deep) !important; }
-.site-root main:not(.admin-content) .rounded-xl,
-.site-root main:not(.admin-content) .rounded-lg { box-shadow: 0 1px 0 rgba(53,42,31,.025); }
-.site-root main:not(.admin-content) img { filter: saturate(.92) contrast(1.02); }
-.site-root main:not(.admin-content) nav[aria-label="Choose news region"] a[aria-current="page"] {
-  background: var(--news-accent) !important;
-  color: #fffaf5 !important;
-}
-.site-root main:not(.admin-content) nav[aria-label="Choose news region"] a[aria-current="page"]:hover,
-.site-root main:not(.admin-content) nav[aria-label="Choose news region"] a[aria-current="page"]:focus-visible { background: var(--news-accent-deep) !important; }
+/* Public news surfaces only. Admin routes contain .admin-theme-shell and are excluded at the body level. */
+.site-root:not(:has(.admin-theme-shell)) main .bg-white { background-color: var(--news-card) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .bg-slate-50,
+.site-root:not(:has(.admin-theme-shell)) main .bg-gray-50 { background-color: #f4eee5 !important; }
+.site-root:not(:has(.admin-theme-shell)) main .border-slate-100,
+.site-root:not(:has(.admin-theme-shell)) main .border-gray-100 { border-color: var(--news-line-soft) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .border-slate-200,
+.site-root:not(:has(.admin-theme-shell)) main .border-gray-200 { border-color: var(--news-line) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .text-slate-950,
+.site-root:not(:has(.admin-theme-shell)) main .text-slate-900,
+.site-root:not(:has(.admin-theme-shell)) main .text-gray-950,
+.site-root:not(:has(.admin-theme-shell)) main .text-gray-900 { color: var(--news-ink) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .text-slate-700,
+.site-root:not(:has(.admin-theme-shell)) main .text-slate-600,
+.site-root:not(:has(.admin-theme-shell)) main .text-slate-500,
+.site-root:not(:has(.admin-theme-shell)) main .text-gray-700,
+.site-root:not(:has(.admin-theme-shell)) main .text-gray-600,
+.site-root:not(:has(.admin-theme-shell)) main .text-gray-500 { color: var(--news-muted) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .text-rose-700,
+.site-root:not(:has(.admin-theme-shell)) main .text-red-600,
+.site-root:not(:has(.admin-theme-shell)) main .text-red-700 { color: var(--news-accent) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .bg-rose-600,
+.site-root:not(:has(.admin-theme-shell)) main .bg-red-600 { background-color: var(--news-accent) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .hover\:text-rose-700:hover,
+.site-root:not(:has(.admin-theme-shell)) main .hover\:text-red-700:hover { color: var(--news-accent-deep) !important; }
+.site-root:not(:has(.admin-theme-shell)) main .rounded-xl,
+.site-root:not(:has(.admin-theme-shell)) main .rounded-lg { box-shadow: 0 1px 0 rgba(53,42,31,.025); }
+.site-root:not(:has(.admin-theme-shell)) main img { filter: saturate(.92) contrast(1.02); }
+.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"] { background: var(--news-accent) !important; color: #fffaf5 !important; }
+.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"]:hover,
+.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"]:focus-visible { background: var(--news-accent-deep) !important; }
+.site-root:not(:has(.admin-theme-shell)) :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--news-accent); outline-offset: 2px; }
 
-/* Keep the admin completely independent from the public editorial system. */
+/* Admin stays strictly on its independent black/white system. */
 .site-root .admin-theme-shell,
 .site-root .admin-theme-shell h1,
 .site-root .admin-theme-shell h2,
-.site-root .admin-theme-shell h3 {
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-}
+.site-root .admin-theme-shell h3 { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; }
 .site-root .admin-theme-shell { color: var(--admin-text) !important; }
+.site-root .admin-theme-shell :is(a, button, input, select, textarea, summary):focus-visible { outline-color: #0a0a0a; }
+[data-admin-theme="dark"] :is(a, button, input, select, textarea, summary):focus-visible { outline-color: #ffffff !important; }
 
 @media (max-width: 640px) {
   .site-root h1 { letter-spacing: -0.02em; }
