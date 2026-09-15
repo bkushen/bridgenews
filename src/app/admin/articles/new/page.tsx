@@ -22,12 +22,12 @@ export default async function NewArticlePage({ searchParams }: { searchParams: P
           <label className="block text-xs font-black uppercase tracking-wide text-slate-400">Author<input name="author" defaultValue="BridgeNews Editorial" className={inputClass} /></label>
           <label className="block text-xs font-black uppercase tracking-wide text-slate-400">Language<select name="language_code" defaultValue="en" className={inputClass}><option value="en">English</option><option value="si">Sinhala</option><option value="ta">Tamil</option></select></label>
           <label className="block text-xs font-black uppercase tracking-wide text-slate-400">Status<select name="status" defaultValue="review_required" className={inputClass}><option value="review_required">Needs review</option><option value="published">Publish now</option><option value="discovered">Draft / discovered</option></select></label>
-          <div className="rounded-xl bg-indigo-50 p-3 text-xs leading-5 text-indigo-800"><strong>AI remains off.</strong> Manual articles are saved without AI summaries, classification or embeddings.</div>
-          <button className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-indigo-500">Create article</button>
+          <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600"><strong className="text-slate-900">AI remains off.</strong> Manual articles are saved without AI summaries, classification or embeddings.</div>
+          <button className="w-full rounded-xl bg-black px-4 py-3 text-sm font-black text-white hover:bg-slate-800">Create article</button>
         </aside>
       </form>
     </main>
   );
 }
 
-const inputClass = "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+const inputClass = "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:border-black focus:ring-2 focus:ring-slate-100";
