@@ -37,13 +37,13 @@ function editorialRank(article: {
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
     const supabase = await createClient();
-    // Fetch a wider window before applying the regional relation filter. This keeps
-    // lower-volume regions visible even when another region publishes heavily.
     const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
     const { data: articles, error: articleError } = await supabase
       .from("articles")
       .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until")
       .eq("status", "published")
+      .not("image_url", "is", null)
+      .neq("image_url", "")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchLimit);
 
@@ -54,7 +54,6 @@ export async function getStories({ region, limit = 24, trending = false }: Story
     const sourceIds = [...new Set(articles.map((article) => article.source_id))];
     const clusterIds = [...new Set(articles.map((article) => article.story_cluster_id).filter(Boolean))] as string[];
 
-    // Metadata enrichments should never make the whole public feed disappear.
     const [regionsResult, categoriesResult, sourcesResult, clustersResult] = await Promise.all([
       supabase.from("article_regions").select("article_id,region_id").in("article_id", articleIds),
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
@@ -114,8 +113,6 @@ export async function getStories({ region, limit = 24, trending = false }: Story
     });
 
     const regional = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
-    // If regional metadata is temporarily unavailable, show the live stream rather
-    // than rendering a homepage with no posts.
     const visible = region && regional.length === 0 ? mapped : regional;
 
     if (trending) {
