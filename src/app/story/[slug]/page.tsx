@@ -5,6 +5,8 @@ import { getStoryBySlug } from "@/lib/data/story-detail";
 import { saveBookmark } from "@/app/saved/actions";
 import { ViewTracker } from "@/components/view-tracker";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://bridgenews-live-bkushen-5488.vercel.app";
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const story = await getStoryBySlug(slug);
@@ -14,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${story.title} | BridgeNews`,
     description,
     alternates: { canonical: `/story/${story.slug}` },
-    openGraph: { type: "article", title: story.title, description, images: story.imageUrl ? [{ url: story.imageUrl }] : undefined, publishedTime: story.publishedAt || undefined },
+    openGraph: { type: "article", title: story.title, description, url: `/story/${story.slug}`, images: story.imageUrl ? [{ url: story.imageUrl }] : undefined, publishedTime: story.publishedAt || undefined },
     twitter: { card: story.imageUrl ? "summary_large_image" : "summary", title: story.title, description, images: story.imageUrl ? [story.imageUrl] : undefined },
   };
 }
@@ -25,11 +27,26 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const story = await getStoryBySlug(slug);
   if (!story) notFound();
+  const absoluteStoryUrl = `${SITE_URL}/story/${story.slug}`;
   const shareText = encodeURIComponent(story.title);
-  const shareUrl = encodeURIComponent(`/story/${story.slug}`);
+  const shareUrl = encodeURIComponent(absoluteStoryUrl);
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: story.title,
+    description: story.summary,
+    mainEntityOfPage: absoluteStoryUrl,
+    url: absoluteStoryUrl,
+    datePublished: story.publishedAt || undefined,
+    image: story.imageUrl ? [story.imageUrl] : undefined,
+    publisher: { "@type": "Organization", name: "BridgeNews", url: SITE_URL },
+    isBasedOn: story.originalUrl,
+    about: story.topics.map((topic) => topic.name),
+  };
 
   return (
     <main className="mx-auto max-w-[1040px] px-4 py-8 sm:px-5 sm:py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       {story.articleId ? <ViewTracker articleId={story.articleId} /> : null}
       <article>
         <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--news-muted)]">

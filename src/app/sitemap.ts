@@ -5,20 +5,22 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://bridgenews-live-bk
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
-    "", "/top-stories", "/latest", "/trending", "/popular", "/search", "/categories", "/topics", "/sources", "/videos", "/map", "/archive", "/official",
+    "", "/brief", "/top-stories", "/latest", "/trending", "/popular", "/search", "/categories", "/topics", "/sources", "/videos", "/map", "/archive", "/official",
     "/region/sri-lanka", "/region/australia", "/region/international",
     "/about", "/contact", "/privacy", "/terms",
   ].map((path) => ({
     url: `${BASE_URL}${path}`,
-    changeFrequency: path === "" || ["/top-stories", "/latest", "/popular"].includes(path) ? "hourly" : "daily",
-    priority: path === "" ? 1 : path.startsWith("/region/") || ["/top-stories", "/latest", "/sources", "/topics"].includes(path) ? 0.8 : 0.6,
+    changeFrequency: path === "" || ["/brief", "/top-stories", "/latest", "/popular"].includes(path) ? "hourly" : "daily",
+    priority: path === "" ? 1 : path === "/brief" ? 0.9 : path.startsWith("/region/") || ["/top-stories", "/latest", "/sources", "/topics"].includes(path) ? 0.8 : 0.6,
   }));
 
   try {
     const supabase = await createClient();
-    const [articlesResult, sourcesResult] = await Promise.all([
-      supabase.from("articles").select("slug,updated_at,published_at").eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(1000),
-      supabase.from("sources").select("slug,updated_at").eq("enabled", true).order("name", { ascending: true }).limit(200),
+    const [articlesResult, sourcesResult, categoriesResult, topicsResult] = await Promise.all([
+      supabase.from("articles").select("slug,updated_at,published_at").eq("status", "published").not("image_url", "is", null).order("published_at", { ascending: false, nullsFirst: false }).limit(5000),
+      supabase.from("sources").select("slug,updated_at").eq("enabled", true).order("name", { ascending: true }).limit(300),
+      supabase.from("categories").select("slug,updated_at").order("name", { ascending: true }).limit(200),
+      supabase.from("topics").select("slug,updated_at").order("updated_at", { ascending: false }).limit(500),
     ]);
     const articleRoutes: MetadataRoute.Sitemap = (articlesResult.data ?? []).map((article) => ({
       url: `${BASE_URL}/story/${article.slug}`,
@@ -32,7 +34,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.6,
     }));
-    return [...staticRoutes, ...sourceRoutes, ...articleRoutes];
+    const categoryRoutes: MetadataRoute.Sitemap = (categoriesResult.data ?? []).map((category) => ({
+      url: `${BASE_URL}/categories/${category.slug}`,
+      lastModified: category.updated_at || undefined,
+      changeFrequency: "daily",
+      priority: 0.7,
+    }));
+    const topicRoutes: MetadataRoute.Sitemap = (topicsResult.data ?? []).map((topic) => ({
+      url: `${BASE_URL}/topics/${topic.slug}`,
+      lastModified: topic.updated_at || undefined,
+      changeFrequency: "daily",
+      priority: 0.65,
+    }));
+    return [...staticRoutes, ...sourceRoutes, ...categoryRoutes, ...topicRoutes, ...articleRoutes];
   } catch {
     return staticRoutes;
   }
