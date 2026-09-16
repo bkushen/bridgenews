@@ -2,30 +2,13 @@ import type { EditionRegion } from "@/lib/region-context";
 
 export type WhatsOnCategory = "movies" | "theatre" | "concerts" | "comedy" | "sports" | "festivals" | "family" | "arts" | "events";
 
-export type WhatsOnProvider = {
-  name: string;
-  url: string;
-};
+export type WhatsOnProvider = { name: string; url: string };
 
 export type WhatsOnItem = {
-  id: string;
-  title: string;
-  category: WhatsOnCategory;
-  region: EditionRegion;
-  imageUrl: string | null;
-  summary: string | null;
-  startAt: string | null;
-  endAt: string | null;
-  venue: string | null;
-  city: string | null;
-  price: string | null;
-  language: string | null;
-  duration: string | null;
-  status: string | null;
-  sourceName: string;
-  sourceUrl: string;
-  ticketUrl: string;
-  providers: WhatsOnProvider[];
+  id: string; title: string; category: WhatsOnCategory; region: EditionRegion; imageUrl: string | null;
+  summary: string | null; startAt: string | null; endAt: string | null; venue: string | null; city: string | null;
+  price: string | null; language: string | null; duration: string | null; status: string | null;
+  sourceName: string; sourceUrl: string; ticketUrl: string; providers: WhatsOnProvider[];
 };
 
 type Source = { name: string; url: string; region: EditionRegion; hint?: WhatsOnCategory; venue?: string; city?: string };
@@ -41,6 +24,9 @@ const SOURCES: Record<EditionRegion, Source[]> = {
     { name: "EAP / Savoy", url: "https://www.eapmovies.com/", region: "sri-lanka", hint: "movies" },
     { name: "National Film Corporation", url: "https://nfc.gov.lk/", region: "sri-lanka", hint: "movies" },
     { name: "OneTicket", url: "https://oneticket.lk/", region: "sri-lanka" },
+    { name: "GetMyTickets", url: "https://getmytickets.lk/", region: "sri-lanka" },
+    { name: "MyTickets", url: "https://www.mytickets.lk/", region: "sri-lanka" },
+    { name: "MyScope", url: "https://www.myscope.lk/", region: "sri-lanka" },
     { name: "IslandLive", url: "https://islandlive.org/events", region: "sri-lanka" },
   ],
   australia: [
@@ -49,6 +35,8 @@ const SOURCES: Record<EditionRegion, Source[]> = {
     { name: "Ticketmaster Australia", url: "https://www.ticketmaster.com.au/discover/melbourne", region: "australia" },
     { name: "Ticketmaster Music", url: "https://www.ticketmaster.com.au/discover/concerts/melbourne", region: "australia", hint: "concerts" },
     { name: "What’s On Melbourne", url: "https://whatson.melbourne.vic.gov.au/", region: "australia" },
+    { name: "Humanitix Melbourne", url: "https://humanitix.com/au/events/au--vic--melbourne", region: "australia" },
+    { name: "Time Out Melbourne", url: "https://www.timeout.com/melbourne", region: "australia" },
   ],
   international: [
     { name: "Ticketmaster", url: "https://www.ticketmaster.com/discover/concerts", region: "international", hint: "concerts" },
@@ -59,231 +47,26 @@ const SOURCES: Record<EditionRegion, Source[]> = {
 function plainText(value: unknown) {
   return typeof value === "string" ? value.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim() : "";
 }
-
-function absoluteUrl(value: unknown, base: string) {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const cleaned = value.trim().split(/\s+/)[0];
-  try { return new URL(cleaned, base).toString(); } catch { return null; }
-}
-
-function firstString(value: unknown): string | null {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (Array.isArray(value)) for (const item of value) { const found = firstString(item); if (found) return found; }
-  if (value && typeof value === "object") {
-    const object = value as Record<string, unknown>;
-    return firstString(object.url) || firstString(object.contentUrl) || firstString(object.name);
-  }
-  return null;
-}
-
-function schemaTypes(value: unknown): string[] {
-  if (typeof value === "string") return [value];
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
-}
-
-function flattenJsonLd(value: unknown, out: Record<string, unknown>[] = []) {
-  if (Array.isArray(value)) { for (const child of value) flattenJsonLd(child, out); return out; }
-  if (!value || typeof value !== "object") return out;
-  const object = value as Record<string, unknown>;
-  if (object["@type"]) out.push(object);
-  if (Array.isArray(object["@graph"])) flattenJsonLd(object["@graph"], out);
-  return out;
-}
-
-function categoryFrom(node: Record<string, unknown>, hint?: WhatsOnCategory): WhatsOnCategory {
-  const types = schemaTypes(node["@type"]).join(" ").toLowerCase();
-  const text = `${types} ${plainText(node.name)} ${plainText(node.eventAttendanceMode)} ${plainText(node.keywords)} ${plainText(node.genre)}`.toLowerCase();
-  if (/movie|film|cinema|screening/.test(text)) return "movies";
-  if (/theatre|theater|drama|play|musical|opera|performing/.test(text)) return "theatre";
-  if (/concert|music|gig|live music/.test(text)) return "concerts";
-  if (/comedy|comedian/.test(text)) return "comedy";
-  if (/sport|match|game|race|tournament/.test(text)) return "sports";
-  if (/festival|fair|carnival/.test(text)) return "festivals";
-  if (/family|children|kids|child/.test(text)) return "family";
-  if (/art|exhibition|gallery|museum/.test(text)) return "arts";
-  return hint || "events";
-}
-
-function attr(attrs: string, name: string) {
-  const match = attrs.match(new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, "i"));
-  return match?.[1] || null;
-}
-
-function extractImage(attrs: string, base: string) {
-  const srcset = attr(attrs, "srcset") || attr(attrs, "data-srcset");
-  const srcsetFirst = srcset?.split(",")[0]?.trim().split(/\s+/)[0] || null;
-  return absoluteUrl(attr(attrs, "data-lazy-src") || attr(attrs, "data-src") || attr(attrs, "data-original") || attr(attrs, "src") || srcsetFirst, base);
-}
-
-function durationFrom(text: string) {
-  const match = text.match(/\b(\d{1,3}\s*(?:min|mins|minutes)|\d{1,2}\s*h(?:r|rs)?(?:\s*\d{1,2}\s*m(?:in)?)?)\b/i);
-  return match ? match[1].replace(/\s+/g, " ").trim() : null;
-}
-
-function languageFrom(text: string) {
-  const languages = ["Sinhala", "English", "Tamil", "Hindi", "Punjabi", "Telugu", "Malayalam", "Kannada", "Mandarin", "Nepali"];
-  return languages.find((language) => new RegExp(`\\b${language}\\b`, "i").test(text)) || null;
-}
-
-function statusFrom(text: string) {
-  if (/coming soon|starts? (?:thursday|friday|saturday|sunday|monday|tuesday|wednesday)|from \d|in cinemas/i.test(text)) return "Coming soon";
-  if (/now showing|now screening|in theaters now|in theatres|now playing/i.test(text)) return "Now showing";
-  return null;
-}
-
-function locationParts(value: unknown) {
-  if (!value || typeof value !== "object") return { venue: null, city: null };
-  const object = value as Record<string, unknown>;
-  const address = object.address && typeof object.address === "object" ? object.address as Record<string, unknown> : {};
-  return { venue: firstString(object.name), city: firstString(address.addressLocality) || firstString(address.addressRegion) || null };
-}
-
-function offerParts(value: unknown) {
-  const offer = Array.isArray(value) ? value[0] : value;
-  if (!offer || typeof offer !== "object") return { url: null, price: null };
-  const object = offer as Record<string, unknown>;
-  const low = firstString(object.lowPrice) || firstString(object.price);
-  const high = firstString(object.highPrice);
-  const currency = firstString(object.priceCurrency);
-  return { url: firstString(object.url), price: low ? `${currency ? `${currency} ` : ""}${low}${high && high !== low ? `–${high}` : ""}` : null };
-}
-
+function absoluteUrl(value: unknown, base: string) { if (typeof value !== "string" || !value.trim()) return null; const cleaned = value.trim().split(/\s+/)[0]; try { return new URL(cleaned, base).toString(); } catch { return null; } }
+function firstString(value: unknown): string | null { if (typeof value === "string" && value.trim()) return value.trim(); if (Array.isArray(value)) for (const item of value) { const found = firstString(item); if (found) return found; } if (value && typeof value === "object") { const object = value as Record<string, unknown>; return firstString(object.url) || firstString(object.contentUrl) || firstString(object.name); } return null; }
+function schemaTypes(value: unknown): string[] { if (typeof value === "string") return [value]; return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []; }
+function flattenJsonLd(value: unknown, out: Record<string, unknown>[] = []) { if (Array.isArray(value)) { for (const child of value) flattenJsonLd(child, out); return out; } if (!value || typeof value !== "object") return out; const object = value as Record<string, unknown>; if (object["@type"]) out.push(object); if (Array.isArray(object["@graph"])) flattenJsonLd(object["@graph"], out); return out; }
+function categoryFrom(node: Record<string, unknown>, hint?: WhatsOnCategory): WhatsOnCategory { const types = schemaTypes(node["@type"]).join(" ").toLowerCase(); const text = `${types} ${plainText(node.name)} ${plainText(node.eventAttendanceMode)} ${plainText(node.keywords)} ${plainText(node.genre)}`.toLowerCase(); if (/movie|film|cinema|screening/.test(text)) return "movies"; if (/theatre|theater|drama|play|musical|opera|performing/.test(text)) return "theatre"; if (/concert|music|gig|live music/.test(text)) return "concerts"; if (/comedy|comedian/.test(text)) return "comedy"; if (/sport|match|game|race|tournament/.test(text)) return "sports"; if (/festival|fair|carnival/.test(text)) return "festivals"; if (/family|children|kids|child/.test(text)) return "family"; if (/art|exhibition|gallery|museum/.test(text)) return "arts"; return hint || "events"; }
+function attr(attrs: string, name: string) { const match = attrs.match(new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, "i")); return match?.[1] || null; }
+function extractImage(attrs: string, base: string) { const srcset = attr(attrs, "srcset") || attr(attrs, "data-srcset"); const srcsetFirst = srcset?.split(",")[0]?.trim().split(/\s+/)[0] || null; return absoluteUrl(attr(attrs, "data-lazy-src") || attr(attrs, "data-src") || attr(attrs, "data-original") || attr(attrs, "src") || srcsetFirst, base); }
+function durationFrom(text: string) { const match = text.match(/\b(\d{1,3}\s*(?:min|mins|minutes)|\d{1,2}\s*h(?:r|rs)?(?:\s*\d{1,2}\s*m(?:in)?)?)\b/i); return match ? match[1].replace(/\s+/g, " ").trim() : null; }
+function languageFrom(text: string) { const languages = ["Sinhala", "English", "Tamil", "Hindi", "Punjabi", "Telugu", "Malayalam", "Kannada", "Mandarin", "Nepali"]; return languages.find((language) => new RegExp(`\\b${language}\\b`, "i").test(text)) || null; }
+function statusFrom(text: string) { if (/coming soon|starts? (?:thursday|friday|saturday|sunday|monday|tuesday|wednesday)|from \d|in cinemas/i.test(text)) return "Coming soon"; if (/now showing|now screening|in theaters now|in theatres|now playing/i.test(text)) return "Now showing"; return null; }
+function locationParts(value: unknown) { if (!value || typeof value !== "object") return { venue: null, city: null }; const object = value as Record<string, unknown>; const address = object.address && typeof object.address === "object" ? object.address as Record<string, unknown> : {}; return { venue: firstString(object.name), city: firstString(address.addressLocality) || firstString(address.addressRegion) || null }; }
+function offerParts(value: unknown) { const offer = Array.isArray(value) ? value[0] : value; if (!offer || typeof offer !== "object") return { url: null, price: null }; const object = offer as Record<string, unknown>; const low = firstString(object.lowPrice) || firstString(object.price); const high = firstString(object.highPrice); const currency = firstString(object.priceCurrency); return { url: firstString(object.url), price: low ? `${currency ? `${currency} ` : ""}${low}${high && high !== low ? `–${high}` : ""}` : null }; }
 function makeProvider(source: Source, url: string): WhatsOnProvider { return { name: source.name, url }; }
-
-function normalizeNode(node: Record<string, unknown>, source: Source): WhatsOnItem | null {
-  const title = plainText(node.name || node.headline);
-  if (!title || title.length < 2) return null;
-  const types = schemaTypes(node["@type"]).map((v) => v.toLowerCase());
-  if (!types.some((t) => /event|movie|screening/.test(t)) && !source.hint) return null;
-  const { venue, city } = locationParts(node.location);
-  const offers = offerParts(node.offers);
-  const ticketUrl = absoluteUrl(offers.url || firstString(node.url), source.url) || source.url;
-  const imageUrl = absoluteUrl(firstString(node.image) || firstString(node.thumbnailUrl), source.url);
-  const summary = plainText(node.description) || null;
-  const text = `${title} ${summary || ""} ${plainText(node.duration)} ${plainText(node.inLanguage)}`;
-  const key = `${source.name}:${title}:${firstString(node.startDate) || ""}:${venue || source.venue || ""}`.toLowerCase();
-  return {
-    id: key.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 180), title,
-    category: categoryFrom(node, source.hint), region: source.region, imageUrl, summary,
-    startAt: firstString(node.startDate) || firstString(node.datePublished), endAt: firstString(node.endDate),
-    venue: venue || source.venue || null, city: city || source.city || null, price: offers.price,
-    language: firstString(node.inLanguage) || languageFrom(text), duration: firstString(node.duration) || durationFrom(text), status: statusFrom(text),
-    sourceName: source.name, sourceUrl: source.url, ticketUrl, providers: [makeProvider(source, ticketUrl)],
-  };
-}
-
-function parseJsonLd(html: string, source: Source) {
-  const items: WhatsOnItem[] = [];
-  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
-    try {
-      const json = JSON.parse(match[1].trim());
-      for (const node of flattenJsonLd(json)) { const item = normalizeNode(node, source); if (item) items.push(item); }
-    } catch { /* ignore malformed publisher JSON-LD block */ }
-  }
-  return items;
-}
-
-function parseVisualCards(html: string, source: Source) {
-  const out: WhatsOnItem[] = [];
-  const anchorRe = /<a\b([^>]*href=["'][^"']+["'][^>]*)>([\s\S]*?)<\/a>/gi;
-  for (const match of html.matchAll(anchorRe)) {
-    const attrs = match[1]; const inner = match[2];
-    const href = absoluteUrl(attr(attrs, "href"), source.url); if (!href) continue;
-    const imgMatch = inner.match(/<img\b([^>]*)>/i); if (!imgMatch) continue;
-    const imageUrl = extractImage(imgMatch[1], source.url); if (!imageUrl) continue;
-    let title = plainText(attr(imgMatch[1], "alt")) || plainText(inner);
-    title = title.replace(/^the movie\s+/i, "").replace(/\s+(?:poster|image)$/i, "").trim();
-    if (title.length < 2 || title.length > 140) continue;
-    const text = plainText(inner);
-    const haystack = `${title} ${text} ${href}`.toLowerCase();
-    if (!source.hint && !/(movie|film|cinema|event|concert|music|theatre|theater|drama|comedy|festival|sport|show|ticket)/.test(haystack)) continue;
-    const category = categoryFrom({ name: `${title} ${text}` }, source.hint);
-    out.push({
-      id: `${source.name}:${title}:${href}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 180), title, category, region: source.region,
-      imageUrl, summary: null, startAt: null, endAt: null, venue: source.venue || null, city: source.city || null, price: null,
-      language: languageFrom(text), duration: durationFrom(text), status: statusFrom(text),
-      sourceName: source.name, sourceUrl: source.url, ticketUrl: href, providers: [makeProvider(source, href)],
-    });
-  }
-  return out;
-}
-
-function parseImageNeighborhoods(html: string, source: Source) {
-  if (source.hint !== "movies") return [];
-  const out: WhatsOnItem[] = [];
-  const imageRe = /<img\b([^>]*)>/gi;
-  for (const match of html.matchAll(imageRe)) {
-    const imageUrl = extractImage(match[1], source.url); if (!imageUrl) continue;
-    let title = plainText(attr(match[1], "alt"));
-    if (!title || /logo|icon|banner|placeholder|theatre facilities/i.test(title)) continue;
-    title = title.replace(/^the movie\s+/i, "").replace(/\s+(?:poster|image)$/i, "").trim();
-    if (title.length < 2 || title.length > 140) continue;
-    const at = match.index || 0; const neighbourhood = plainText(html.slice(Math.max(0, at - 900), Math.min(html.length, at + 1800)));
-    const linkMatch = html.slice(Math.max(0, at - 900), Math.min(html.length, at + 1800)).match(/href=["']([^"']+)["']/i);
-    const ticketUrl = absoluteUrl(linkMatch?.[1], source.url) || source.url;
-    out.push({
-      id: `${source.name}:${title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 180), title, category: "movies", region: source.region,
-      imageUrl, summary: null, startAt: null, endAt: null, venue: source.venue || null, city: source.city || null, price: null,
-      language: languageFrom(neighbourhood), duration: durationFrom(neighbourhood), status: statusFrom(neighbourhood),
-      sourceName: source.name, sourceUrl: source.url, ticketUrl, providers: [makeProvider(source, ticketUrl)],
-    });
-  }
-  return out;
-}
-
-async function fetchSource(source: Source) {
-  try {
-    const response = await fetch(source.url, {
-      headers: { "user-agent": "Mozilla/5.0 (compatible; BridgeNews/1.0; +https://bridgenews-live-bkushen-5488.vercel.app)", accept: "text/html,application/xhtml+xml" },
-      next: { revalidate: 900 }, signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
-    return [...parseJsonLd(html, source), ...parseVisualCards(html, source), ...parseImageNeighborhoods(html, source)];
-  } catch { return []; }
-}
-
-function normalizedTitle(value: string) {
-  return value.toLowerCase().replace(/\((?:sin|eng|tam|hin|sinhala|english|tamil|hindi|2d|3d)[^)]*\)/gi, " ").replace(/\b(?:2d|3d|imax)\b/gi, " ").replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
-}
-
-function richness(item: WhatsOnItem) {
-  return Number(Boolean(item.imageUrl)) * 8 + Number(Boolean(item.summary)) * 3 + Number(Boolean(item.duration)) * 2 + Number(Boolean(item.language)) * 2 + Number(Boolean(item.startAt)) * 2 + Number(Boolean(item.venue)) + Number(Boolean(item.price));
-}
-
-function dedupe(items: WhatsOnItem[]) {
-  const merged = new Map<string, WhatsOnItem>();
-  for (const item of items) {
-    const key = `${item.category}|${normalizedTitle(item.title)}`;
-    const current = merged.get(key);
-    if (!current) { merged.set(key, item); continue; }
-    const preferred = richness(item) > richness(current) ? item : current;
-    const other = preferred === item ? current : item;
-    preferred.providers = Array.from(new Map([...preferred.providers, ...other.providers].map((provider) => [`${provider.name}|${provider.url}`, provider])).values());
-    preferred.imageUrl ||= other.imageUrl; preferred.summary ||= other.summary; preferred.duration ||= other.duration; preferred.language ||= other.language;
-    preferred.startAt ||= other.startAt; preferred.endAt ||= other.endAt; preferred.venue ||= other.venue; preferred.city ||= other.city; preferred.price ||= other.price; preferred.status ||= other.status;
-    merged.set(key, preferred);
-  }
-  return [...merged.values()];
-}
-
-export async function getWhatsOnItems(region: EditionRegion, limit = 120): Promise<WhatsOnItem[]> {
-  const rows = dedupe((await Promise.all(SOURCES[region].map(fetchSource))).flat());
-  const cutoff = Date.now() - 12 * 60 * 60 * 1000;
-  return rows
-    .filter((item) => Boolean(item.imageUrl))
-    .filter((item) => !item.startAt || Number.isNaN(new Date(item.startAt).getTime()) || new Date(item.startAt).getTime() >= cutoff)
-    .sort((a, b) => {
-      const nowA = a.status === "Now showing" ? 0 : a.status === "Coming soon" ? 1 : 2;
-      const nowB = b.status === "Now showing" ? 0 : b.status === "Coming soon" ? 1 : 2;
-      if (nowA !== nowB) return nowA - nowB;
-      const at = a.startAt ? new Date(a.startAt).getTime() : Number.MAX_SAFE_INTEGER;
-      const bt = b.startAt ? new Date(b.startAt).getTime() : Number.MAX_SAFE_INTEGER;
-      return at - bt || a.title.localeCompare(b.title);
-    })
-    .slice(0, limit);
-}
-
-export function whatsOnSources(region: EditionRegion) {
-  return SOURCES[region].map(({ name, url }) => ({ name, url }));
-}
+function normalizeNode(node: Record<string, unknown>, source: Source): WhatsOnItem | null { const title = plainText(node.name || node.headline); if (!title || title.length < 2) return null; const types = schemaTypes(node["@type"]).map((v) => v.toLowerCase()); if (!types.some((t) => /event|movie|screening/.test(t)) && !source.hint) return null; const { venue, city } = locationParts(node.location); const offers = offerParts(node.offers); const ticketUrl = absoluteUrl(offers.url || firstString(node.url), source.url) || source.url; const imageUrl = absoluteUrl(firstString(node.image) || firstString(node.thumbnailUrl), source.url); const summary = plainText(node.description) || null; const text = `${title} ${summary || ""} ${plainText(node.duration)} ${plainText(node.inLanguage)}`; const key = `${source.name}:${title}:${firstString(node.startDate) || ""}:${venue || source.venue || ""}`.toLowerCase(); return { id: key.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 180), title, category: categoryFrom(node, source.hint), region: source.region, imageUrl, summary, startAt: firstString(node.startDate) || firstString(node.datePublished), endAt: firstString(node.endDate), venue: venue || source.venue || null, city: city || source.city || null, price: offers.price, language: firstString(node.inLanguage) || languageFrom(text), duration: firstString(node.duration) || durationFrom(text), status: statusFrom(text), sourceName: source.name, sourceUrl: source.url, ticketUrl, providers: [makeProvider(source, ticketUrl)] }; }
+function parseJsonLd(html: string, source: Source) { const items: WhatsOnItem[] = []; for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) { try { const json = JSON.parse(match[1].trim()); for (const node of flattenJsonLd(json)) { const item = normalizeNode(node, source); if (item) items.push(item); } } catch {} } return items; }
+function parseVisualCards(html: string, source: Source) { const out: WhatsOnItem[] = []; const anchorRe = /<a\b([^>]*href=["'][^"']+["'][^>]*)>([\s\S]*?)<\/a>/gi; for (const match of html.matchAll(anchorRe)) { const attrs = match[1]; const inner = match[2]; const href = absoluteUrl(attr(attrs, "href"), source.url); if (!href) continue; const imgMatch = inner.match(/<img\b([^>]*)>/i); if (!imgMatch) continue; const imageUrl = extractImage(imgMatch[1], source.url); if (!imageUrl) continue; let title = plainText(attr(imgMatch[1], "alt")) || plainText(inner); title = title.replace(/^the movie\s+/i, "").replace(/\s+(?:poster|image)$/i, "").trim(); if (title.length < 2 || title.length > 140) continue; const text = plainText(inner); const haystack = `${title} ${text} ${href}`.toLowerCase(); if (!source.hint && !/(movie|film|cinema|event|concert|music|theatre|theater|drama|comedy|festival|sport|show|ticket)/.test(haystack)) continue; const category = categoryFrom({ name: `${title} ${text}` }, source.hint); out.push({ id: `${source.name}:${title}:${href}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 180), title, category, region: source.region, imageUrl, summary: null, startAt: null, endAt: null, venue: source.venue || null, city: source.city || null, price: null, language: languageFrom(text), duration: durationFrom(text), status: statusFrom(text), sourceName: source.name, sourceUrl: source.url, ticketUrl: href, providers: [makeProvider(source, href)] }); } return out; }
+function parseImageNeighborhoods(html: string, source: Source) { if (source.hint !== "movies") return []; const out: WhatsOnItem[] = []; const imageRe = /<img\b([^>]*)>/gi; for (const match of html.matchAll(imageRe)) { const imageUrl = extractImage(match[1], source.url); if (!imageUrl) continue; let title = plainText(attr(match[1], "alt")); if (!title || /logo|icon|banner|placeholder|theatre facilities/i.test(title)) continue; title = title.replace(/^the movie\s+/i, "").replace(/\s+(?:poster|image)$/i, "").trim(); if (title.length < 2 || title.length > 140) continue; const at = match.index || 0; const neighbourhood = plainText(html.slice(Math.max(0, at - 900), Math.min(html.length, at + 1800))); const linkMatch = html.slice(Math.max(0, at - 900), Math.min(html.length, at + 1800)).match(/href=["']([^"']+)["']/i); const ticketUrl = absoluteUrl(linkMatch?.[1], source.url) || source.url; out.push({ id: `${source.name}:${title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 180), title, category: "movies", region: source.region, imageUrl, summary: null, startAt: null, endAt: null, venue: source.venue || null, city: source.city || null, price: null, language: languageFrom(neighbourhood), duration: durationFrom(neighbourhood), status: statusFrom(neighbourhood), sourceName: source.name, sourceUrl: source.url, ticketUrl, providers: [makeProvider(source, ticketUrl)] }); } return out; }
+async function fetchSource(source: Source) { try { const response = await fetch(source.url, { headers: { "user-agent": "Mozilla/5.0 (compatible; BridgeNews/1.0; +https://bridgenews-live-bkushen-5488.vercel.app)", accept: "text/html,application/xhtml+xml" }, next: { revalidate: 900 }, signal: AbortSignal.timeout(15000) }); if (!response.ok) return []; const html = await response.text(); return [...parseJsonLd(html, source), ...parseVisualCards(html, source), ...parseImageNeighborhoods(html, source)]; } catch { return []; } }
+function normalizedTitle(value: string) { return value.toLowerCase().replace(/\((?:sin|eng|tam|hin|sinhala|english|tamil|hindi|2d|3d)[^)]*\)/gi, " ").replace(/\b(?:2d|3d|imax)\b/gi, " ").replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim(); }
+function richness(item: WhatsOnItem) { return Number(Boolean(item.imageUrl)) * 8 + Number(Boolean(item.summary)) * 3 + Number(Boolean(item.duration)) * 2 + Number(Boolean(item.language)) * 2 + Number(Boolean(item.startAt)) * 2 + Number(Boolean(item.venue)) + Number(Boolean(item.price)); }
+function dedupe(items: WhatsOnItem[]) { const merged = new Map<string, WhatsOnItem>(); for (const item of items) { const key = `${item.category}|${normalizedTitle(item.title)}`; const current = merged.get(key); if (!current) { merged.set(key, item); continue; } const preferred = richness(item) > richness(current) ? item : current; const other = preferred === item ? current : item; preferred.providers = Array.from(new Map([...preferred.providers, ...other.providers].map((provider) => [`${provider.name}|${provider.url}`, provider])).values()); preferred.imageUrl ||= other.imageUrl; preferred.summary ||= other.summary; preferred.duration ||= other.duration; preferred.language ||= other.language; preferred.startAt ||= other.startAt; preferred.endAt ||= other.endAt; preferred.venue ||= other.venue; preferred.city ||= other.city; preferred.price ||= other.price; preferred.status ||= other.status; merged.set(key, preferred); } return [...merged.values()]; }
+export async function getWhatsOnItems(region: EditionRegion, limit = 120): Promise<WhatsOnItem[]> { const rows = dedupe((await Promise.all(SOURCES[region].map(fetchSource))).flat()); const cutoff = Date.now() - 12 * 60 * 60 * 1000; return rows.filter((item) => Boolean(item.imageUrl)).filter((item) => !item.startAt || Number.isNaN(new Date(item.startAt).getTime()) || new Date(item.startAt).getTime() >= cutoff).sort((a, b) => { const nowA = a.status === "Now showing" ? 0 : a.status === "Coming soon" ? 1 : 2; const nowB = b.status === "Now showing" ? 0 : b.status === "Coming soon" ? 1 : 2; if (nowA !== nowB) return nowA - nowB; const at = a.startAt ? new Date(a.startAt).getTime() : Number.MAX_SAFE_INTEGER; const bt = b.startAt ? new Date(b.startAt).getTime() : Number.MAX_SAFE_INTEGER; return at - bt || a.title.localeCompare(b.title); }).slice(0, limit); }
+export function whatsOnSources(region: EditionRegion) { return SOURCES[region].map(({ name, url }) => ({ name, url })); }
