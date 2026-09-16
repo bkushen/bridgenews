@@ -35,7 +35,7 @@ export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyC
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-rose-700">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#a5232f]">
             <span className="h-2 w-2 rounded-full bg-emerald-600" />
             <span>Daily News Pulse · Live</span>
           </div>
@@ -53,25 +53,25 @@ export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyC
                   onMouseEnter={() => setActiveKey(topic.key)}
                   onFocus={() => setActiveKey(topic.key)}
                   onPointerEnter={() => setActiveKey(topic.key)}
-                  className={`group flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] leading-5 text-slate-800 transition ${selected ? "bg-[#f1ede5] font-black" : "font-semibold hover:bg-slate-50"}`}
+                  className={`group flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-[13px] leading-5 transition-colors ${selected ? "border-[#a5232f] bg-[#f8e8e8] font-black text-[#7f1822]" : "border-transparent font-semibold text-[#514b45] hover:bg-[#f4eee5] hover:text-[#7f1822]"}`}
                 >
                   <span className="w-4 shrink-0 text-[9px]">{flag}</span>
                   <span className="line-clamp-2 group-hover:underline">{topic.title}</span>
-                  {topic.sourceCount > 1 ? <span className="ml-auto shrink-0 text-[9px] font-black text-rose-700">{topic.sourceCount}</span> : null}
+                  {topic.sourceCount > 1 ? <span className="ml-auto shrink-0 text-[9px] font-black text-[#a5232f]">{topic.sourceCount}</span> : null}
                 </Link>
               );
             })}
           </div>
 
-          <div className="min-h-[220px] rounded-xl border-l-2 border-rose-700 bg-[#efe9dd] p-4 transition-all" aria-live="polite">
+          <div className="min-h-[220px] rounded-xl border-l-2 border-[#a5232f] bg-[#efe8dc] p-4 transition-all" aria-live="polite">
             {active ? (
               <>
-                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-rose-700">Hovered topic</p>
-                <Link href={`/story/${active.slug}`} className="mt-2 block text-[15px] font-black leading-5 text-slate-950 hover:underline">
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#a5232f]">Selected topic</p>
+                <Link href={`/story/${active.slug}`} className="mt-2 block text-[15px] font-black leading-5 text-[#1d1b19] hover:text-[#7f1822] hover:underline">
                   {active.title}
                 </Link>
-                <p className="mt-2 line-clamp-7 text-[12px] leading-5 text-slate-700">{active.summary}</p>
-                <p className="mt-3 text-[9px] font-bold text-slate-500">
+                <p className="mt-2 line-clamp-7 text-[12px] leading-5 text-[#5f5851]">{active.summary}</p>
+                <p className="mt-3 text-[9px] font-bold text-[#746e66]">
                   {active.sourceCount} source{active.sourceCount === 1 ? "" : "s"} · {active.source}
                 </p>
               </>
@@ -87,11 +87,11 @@ export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyC
       <div className="border-t border-slate-200 p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Trending Topics</p>
-          <Link href="/topics" className="text-[9px] font-bold text-slate-400">Explore all →</Link>
+          <Link href="/topics" className="text-[9px] font-bold text-[#746e66] transition-colors hover:text-[#7f1822]">Explore all →</Link>
         </div>
         <div className="flex flex-wrap gap-2">
           {chips.map((name, index) => (
-            <Link key={name} href={`/search?q=${encodeURIComponent(name)}`} className={`rounded-full border px-3 py-1.5 text-[11px] font-black ${index < 3 ? "border-rose-200 bg-rose-50 text-rose-800" : "border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:text-rose-700"}`}>
+            <Link key={name} href={`/search?q=${encodeURIComponent(name)}`} className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition-colors ${index < 3 ? "border-[#d8a5aa] bg-[#f8e8e8] text-[#7f1822] hover:border-[#a5232f] hover:bg-[#f3d9dc]" : "border-[#d8d0c4] bg-[#fffdf8] text-[#5f5851] hover:border-[#a5232f] hover:bg-[#f8e8e8] hover:text-[#7f1822]"}`}>
               #{name}
             </Link>
           ))}
