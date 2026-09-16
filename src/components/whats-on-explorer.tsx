@@ -21,6 +21,8 @@ const LABELS: Record<WhatsOnCategory, string> = {
   festivals: "Festival", family: "Family", arts: "Arts", events: "Event",
 };
 
+const AUSTRALIA_CITY_ORDER = ["Melbourne", "Sydney", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin", "Gold Coast", "Newcastle", "Geelong", "Ballarat"];
+
 function formatDate(value: string | null, timeZone: string) {
   if (!value) return null;
   const date = new Date(value);
@@ -109,7 +111,21 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
 
   const pictured = useMemo(() => mergeUniqueItems(items), [items]);
   const available = useMemo(() => new Set(pictured.map((item) => item.category)), [pictured]);
+  const australia = regionLabel.toLowerCase().includes("australia");
+  const cityOptions = useMemo(() => {
+    if (!australia) return [];
+    const cities = Array.from(new Set(pictured.map((item) => item.city).filter((city): city is string => Boolean(city))));
+    return cities.sort((a, b) => {
+      const ai = AUSTRALIA_CITY_ORDER.indexOf(a);
+      const bi = AUSTRALIA_CITY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [pictured, australia]);
   const [category, setCategory] = useState<"all" | WhatsOnCategory>("all");
+  const [city, setCity] = useState("all");
   const [dateMode, setDateMode] = useState<"all" | "weekend" | "next-weekend" | "custom">("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -122,8 +138,12 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
       from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
       to = toDate ? new Date(`${toDate}T23:59:59`) : null;
     }
-    return pictured.filter((item) => (category === "all" || item.category === category) && isWithin(item, from, to));
-  }, [pictured, category, dateMode, fromDate, toDate]);
+    return pictured.filter((item) => {
+      if (category !== "all" && item.category !== category) return false;
+      if (city !== "all" && item.city !== city && !(item.category === "movies" && !item.city)) return false;
+      return isWithin(item, from, to);
+    });
+  }, [pictured, category, city, dateMode, fromDate, toDate]);
 
   return <section>
     <div className="rounded-2xl border border-[#ded5c8] bg-[#fffdf8] p-4 sm:p-5">
@@ -131,6 +151,7 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
         <div className="flex gap-2 overflow-x-auto pb-1">{PAGE_CATEGORIES.filter((item)=>item.key==="all"||available.has(item.key as WhatsOnCategory)).map((item)=>{const active=category===item.key; return <button key={item.key} type="button" onClick={()=>setCategory(item.key)} className={`shrink-0 rounded-md px-4 py-2 text-[10px] font-black uppercase tracking-[0.08em] transition ${active ? "bg-[#a5232f] text-white" : "bg-[#ece6dc] text-[#443e38] hover:bg-[#dfd6c9]"}`}>{item.label}</button>})}</div>
         <a href="/suggest-feed?type=event" className="shrink-0 rounded-md bg-[#ece6dc] px-4 py-2 text-[11px] font-black text-[#2c2926] transition hover:bg-[#dfd6c9]">✚ Submit an event</a>
       </div>
+      {australia && cityOptions.length ? <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-[#eee6dc] pt-4"><span className="mr-1 shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-[#8c8177]">Where</span><button type="button" onClick={()=>setCity("all")} className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold ${city==="all"?"border-[#a5232f] bg-[#a5232f] text-white":"border-[#ded5c8] bg-white text-[#514b45]"}`}>All Australia</button>{cityOptions.map((name)=><button key={name} type="button" onClick={()=>setCity(name)} className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold ${city===name?"border-[#a5232f] bg-[#a5232f] text-white":"border-[#ded5c8] bg-white text-[#514b45] hover:border-[#a5232f]"}`}>{name}</button>)}</div> : null}
     </div>
 
     <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -144,7 +165,7 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
         <div className="p-3">
           <h3 className="line-clamp-2 font-serif text-[15px] font-black leading-5 text-[#211e1b]">{item.title}</h3>
           <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-black"><span className="rounded bg-[#211e1b] px-1.5 py-1 text-white">{LABELS[item.category]}</span>{formatDate(item.startAt,timeZone)?<span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">📅 {formatDate(item.startAt,timeZone)}</span>:null}{item.language?<span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.language}</span>:null}{item.duration?<span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.duration}</span>:null}</div>
-          <p className="mt-2 line-clamp-1 text-[10px] text-[#7d736a]">📍 {[item.venue,item.city].filter(Boolean).join(", ") || regionLabel}</p>
+          <p className="mt-2 line-clamp-1 text-[10px] text-[#7d736a]">📍 {[item.venue,item.city].filter(Boolean).join(", ") || (australia ? "Australia-wide" : regionLabel)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">{item.providers.slice(0,3).map((provider)=><a key={`${provider.name}-${provider.url}`} href={provider.url} target="_blank" rel="noreferrer" className="rounded border border-[#a5232f] px-2 py-1 text-[8px] font-black uppercase text-[#a5232f] hover:bg-[#a5232f] hover:text-white">{provider.name} ↗</a>)}</div>
         </div>
       </article>)}
