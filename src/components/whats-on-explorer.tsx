@@ -28,8 +28,73 @@ function formatDate(value: string | null, timeZone: string) {
   return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone }).format(date);
 }
 
+function normalizeTitle(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\((?:sin|eng|tam|hin|sinhala|english|tamil|hindi|2d|3d|imax)[^)]*\)/gi, " ")
+    .replace(/\b(?:movie|film|2d|3d|imax|dolby|screening|now showing|coming soon)\b/gi, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeImage(value: string | null) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    url.search = "";
+    url.hash = "";
+    return `${url.hostname}${url.pathname}`.toLowerCase().replace(/\/(?:thumb|thumbnail|small|medium|large)\//g, "/");
+  } catch {
+    return value.toLowerCase().split("?")[0].split("#")[0];
+  }
+}
+
+function richness(item: WhatsOnItem) {
+  return Number(Boolean(item.summary)) * 4 + Number(Boolean(item.duration)) * 2 + Number(Boolean(item.language)) * 2 + Number(Boolean(item.startAt)) * 2 + Number(Boolean(item.venue)) + item.providers.length;
+}
+
+function mergeUniqueItems(items: WhatsOnItem[]) {
+  const byTitle = new Map<string, WhatsOnItem>();
+  const imageOwner = new Map<string, string>();
+
+  for (const item of items) {
+    if (!item.imageUrl) continue;
+    const titleKey = normalizeTitle(item.title);
+    if (!titleKey) continue;
+    const imageKey = normalizeImage(item.imageUrl);
+    const existingKey = byTitle.has(titleKey) ? titleKey : imageKey && imageOwner.has(imageKey) ? imageOwner.get(imageKey)! : titleKey;
+    const current = byTitle.get(existingKey);
+
+    if (!current) {
+      const copy = { ...item, providers: [...item.providers] };
+      byTitle.set(titleKey, copy);
+      if (imageKey) imageOwner.set(imageKey, titleKey);
+      continue;
+    }
+
+    const preferred = richness(item) > richness(current) ? { ...item, providers: [...item.providers] } : current;
+    const other = preferred === current ? item : current;
+    preferred.providers = Array.from(new Map([...preferred.providers, ...other.providers].map((provider) => [`${provider.name.toLowerCase()}|${provider.url}`, provider])).values());
+    preferred.summary ||= other.summary;
+    preferred.duration ||= other.duration;
+    preferred.language ||= other.language;
+    preferred.startAt ||= other.startAt;
+    preferred.endAt ||= other.endAt;
+    preferred.venue ||= other.venue;
+    preferred.city ||= other.city;
+    preferred.price ||= other.price;
+    preferred.status ||= other.status;
+    preferred.imageUrl ||= other.imageUrl;
+    byTitle.set(existingKey, preferred);
+  }
+
+  return [...byTitle.values()];
+}
+
 export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false }: { items: WhatsOnItem[]; regionLabel: string; timeZone: string; compact?: boolean }) {
-  const pictured = useMemo(() => items.filter((item) => Boolean(item.imageUrl)), [items]);
+  const pictured = useMemo(() => mergeUniqueItems(items), [items]);
   const available = useMemo(() => new Set(pictured.map((item) => item.category)), [pictured]);
   const [category, setCategory] = useState<"all" | WhatsOnCategory>("all");
   const [timing, setTiming] = useState<"all" | "now" | "soon">("all");
@@ -61,7 +126,7 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
       })}
     </div>
 
-    {!compact ? <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#eee6dc] pt-3"><span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#8c8177]">When</span>{[["all","All dates"],["now","Now showing"],["soon","Coming soon"]] .map(([key,label]) => <button key={key} type="button" onClick={() => setTiming(key as "all"|"now"|"soon")} className={`rounded-full border px-3 py-1.5 text-[10px] font-bold ${timing === key ? "border-[#1d1b19] bg-[#1d1b19] text-white" : "border-[#d9cfc2] bg-white text-[#5f574f]"}`}>{label}</button>)}</div> : null}
+    {!compact ? <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#eee6dc] pt-3"><span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#8c8177]">When</span>{[["all","All dates"],["now","Now showing"],["soon","Coming soon"]].map(([key,label]) => <button key={key} type="button" onClick={() => setTiming(key as "all"|"now"|"soon")} className={`rounded-full border px-3 py-1.5 text-[10px] font-bold ${timing === key ? "border-[#1d1b19] bg-[#1d1b19] text-white" : "border-[#d9cfc2] bg-white text-[#5f574f]"}`}>{label}</button>)}</div> : null}
 
     {!selected ? <div className="mt-5 rounded-xl border border-dashed border-[#d9cfc2] bg-[#f8f3eb] p-6 text-center"><p className="font-serif text-lg font-bold text-[#1d1b19]">No pictured listings are available right now.</p><p className="mt-2 text-xs leading-5 text-[#746a61]">BridgeNews only shows genuine movie/event posters here. Listings without a usable image stay out of this visual module.</p></div> : <>
       <div className={`mt-4 ${compact ? "grid grid-cols-[145px_minmax(0,1fr)] gap-4" : "grid gap-5 rounded-xl border border-[#ddd3c6] bg-[#fffdf8] p-4 md:grid-cols-[260px_minmax(0,1fr)]"}`}>
@@ -91,13 +156,13 @@ export function WhatsOnExplorer({ items, regionLabel, timeZone, compact = false 
       {next.length ? <div className="mt-5">
         <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#91867c]">What&apos;s next</p>
         <div className={`mt-2 grid gap-2 ${compact ? "grid-cols-4 sm:grid-cols-7" : "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8"}`}>
-          {next.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} title={item.title} className={`group overflow-hidden rounded-lg border bg-[#fffaf8] text-left transition duration-200 hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#a5232f]/30 ${selected?.id === item.id ? "border-[#a5232f] ring-1 ring-[#a5232f]" : "border-[#d9cfc2] hover:border-[#a5232f]"}`}>
+          {next.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} title={item.title} className="group overflow-hidden rounded-lg border border-[#d9cfc2] bg-[#fffaf8] text-left transition duration-200 hover:-translate-y-1 hover:border-[#a5232f] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#a5232f]/30">
             <div className={`${compact ? "h-24" : "h-32"} overflow-hidden bg-[#eee5da]`}><img src={item.imageUrl!} alt={`${item.title} poster`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/></div>
           </button>)}
         </div>
       </div> : null}
 
-      {!compact ? <div className="mt-8 border-t border-[#e8dfd4] pt-5"><div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#91867c]">All pictured listings</p><h3 className="mt-1 font-serif text-2xl font-black text-[#1d1b19]">{filtered.length} movies & events</h3></div></div><div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{filtered.map((item) => <button key={`catalog-${item.id}`} type="button" onClick={() => { setSelectedId(item.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="group overflow-hidden rounded-xl border border-[#ddd3c6] bg-[#fffdf8] text-left transition duration-200 hover:-translate-y-1 hover:border-[#bba999] hover:shadow-lg"><div className="aspect-[2/3] overflow-hidden bg-[#eee5da]"><img src={item.imageUrl!} alt={`${item.title} poster`} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.035]"/></div><div className="p-3"><h4 className="line-clamp-2 font-serif text-[15px] font-black leading-5 text-[#211e1b]">{item.title}</h4><div className="mt-2 flex flex-wrap gap-1 text-[8px] font-black uppercase"><span className="rounded bg-[#211e1b] px-1.5 py-1 text-white">{LABELS[item.category]}</span>{item.language ? <span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.language}</span> : null}{item.duration ? <span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.duration}</span> : null}</div><p className="mt-2 line-clamp-1 text-[10px] text-[#7d736a]">📍 {[item.venue,item.city].filter(Boolean).join(", ") || regionLabel}</p></div></button>)}</div></div> : null}
+      {!compact ? <div className="mt-8 border-t border-[#e8dfd4] pt-5"><div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#91867c]">All pictured listings</p><h3 className="mt-1 font-serif text-2xl font-black text-[#1d1b19]">{filtered.length} unique movies & events</h3></div></div><div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{filtered.map((item) => <button key={`catalog-${item.id}`} type="button" onClick={() => { setSelectedId(item.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="group overflow-hidden rounded-xl border border-[#ddd3c6] bg-[#fffdf8] text-left transition duration-200 hover:-translate-y-1 hover:border-[#bba999] hover:shadow-lg"><div className="aspect-[2/3] overflow-hidden bg-[#eee5da]"><img src={item.imageUrl!} alt={`${item.title} poster`} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.035]"/></div><div className="p-3"><h4 className="line-clamp-2 font-serif text-[15px] font-black leading-5 text-[#211e1b]">{item.title}</h4><div className="mt-2 flex flex-wrap gap-1 text-[8px] font-black uppercase"><span className="rounded bg-[#211e1b] px-1.5 py-1 text-white">{LABELS[item.category]}</span>{item.language ? <span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.language}</span> : null}{item.duration ? <span className="rounded bg-[#f0e9df] px-1.5 py-1 text-[#655d55]">{item.duration}</span> : null}</div><p className="mt-2 line-clamp-1 text-[10px] text-[#7d736a]">📍 {[item.venue,item.city].filter(Boolean).join(", ") || regionLabel}</p></div></button>)}</div></div> : null}
     </>}
   </section>;
 }
