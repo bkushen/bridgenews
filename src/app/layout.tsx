@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
 import "./editorial-theme.css";
+import "./urban-observer-theme.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
