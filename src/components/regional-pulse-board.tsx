@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { HotHashtag } from "@/lib/data/hot-hashtags";
 
 export type RegionalPulseTopic = {
@@ -21,7 +21,7 @@ type Props = {
   topics: RegionalPulseTopic[];
   storyCount: number;
   sourceCount: number;
-  hotHashtags: HotHashtag[];
+  hotHashtags?: HotHashtag[];
 };
 
 function freshnessLabel(ageMinutes: number) {
@@ -32,9 +32,47 @@ function freshnessLabel(ageMinutes: number) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyCount, sourceCount, hotHashtags }: Props) {
+function feedParams(regionLabel: string) {
+  const normalized = regionLabel.toLocaleLowerCase();
+  const region = normalized.startsWith("australia")
+    ? "australia"
+    : normalized.startsWith("international")
+      ? "international"
+      : "sri-lanka";
+
+  let language: "en" | "si" | "ta" | undefined;
+  if (region === "sri-lanka") {
+    if (regionLabel.includes("සිංහල")) language = "si";
+    else if (regionLabel.includes("தமிழ்")) language = "ta";
+    else language = "en";
+  }
+
+  const params = new URLSearchParams({ region });
+  if (language) params.set("language", language);
+  return params.toString();
+}
+
+export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyCount, sourceCount, hotHashtags = [] }: Props) {
   const [activeKey, setActiveKey] = useState(topics[0]?.key ?? "");
+  const [hashtags, setHashtags] = useState<HotHashtag[]>(hotHashtags);
   const active = topics.find((topic) => topic.key === activeKey) ?? topics[0];
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch(`/api/hot-hashtags?${feedParams(regionLabel)}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Hot hashtag request failed: ${response.status}`)))
+      .then((payload: { hashtags?: HotHashtag[] }) => setHashtags(Array.isArray(payload.hashtags) ? payload.hashtags : []))
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.error(error);
+      });
+
+    return () => controller.abort();
+  }, [regionLabel]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -101,9 +139,9 @@ export function RegionalPulseBoard({ regionLabel, flag, greeting, topics, storyC
           <Link href="/topics" className="shrink-0 text-[9px] font-bold text-[#746e66] transition-colors hover:text-[#7f1822]">Explore all →</Link>
         </div>
 
-        {hotHashtags.length ? (
+        {hashtags.length ? (
           <div className="flex flex-wrap gap-2">
-            {hotHashtags.map((tag, index) => (
+            {hashtags.map((tag, index) => (
               <Link
                 key={tag.label}
                 href={`/search?q=${encodeURIComponent(tag.label)}`}
