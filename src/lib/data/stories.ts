@@ -112,8 +112,9 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       };
     });
 
-    const regional = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
-    const visible = region && regional.length === 0 ? mapped : regional;
+    // A selected edition is a hard content boundary. Never fall back to another
+    // region when the selected edition has no matching stories.
+    const visible = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
 
     if (trending) {
       visible.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
