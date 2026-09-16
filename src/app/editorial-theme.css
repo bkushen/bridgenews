@@ -44,6 +44,10 @@
 [data-public-header] .news-signin:hover { background: var(--news-accent-deep) !important; border-color: var(--news-accent-deep) !important; }
 [data-public-header] .news-nav-link:hover,
 [data-public-header] .news-language-link:hover { color: var(--news-accent-deep) !important; }
+[data-public-header] a[class*="rounded-full"] {
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+[data-public-header] a[class*="rounded-full"]:hover { transform: translateY(-1px); }
 
 [data-public-footer] { background: #201d1a !important; border-color: #201d1a !important; color: #f5efe6; }
 [data-public-footer] .news-footer-muted { color: #c9c0b5 !important; }
@@ -77,6 +81,19 @@
 .site-root:not(:has(.admin-theme-shell)) main .rounded-xl,
 .site-root:not(:has(.admin-theme-shell)) main .rounded-lg { box-shadow: 0 1px 0 rgba(53,42,31,.025); }
 .site-root:not(:has(.admin-theme-shell)) main img { filter: saturate(.92) contrast(1.02); }
+
+/* Dark public surfaces always keep readable light foregrounds, even when utility text classes are nested inside. */
+.site-root:not(:has(.admin-theme-shell)) main :is(.bg-black, .bg-slate-950, .bg-gray-950, .bg-zinc-950, .bg-neutral-950) {
+  color: #fffdf8 !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(.bg-black, .bg-slate-950, .bg-gray-950, .bg-zinc-950, .bg-neutral-950)
+:is(.text-black, .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700, .text-gray-950, .text-gray-900, .text-gray-800, .text-gray-700) {
+  color: #fffdf8 !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(.bg-black, .bg-slate-950, .bg-gray-950, .bg-zinc-950, .bg-neutral-950)
+:is(.text-slate-600, .text-slate-500, .text-slate-400, .text-gray-600, .text-gray-500, .text-gray-400) {
+  color: #d7cfc4 !important;
+}
 
 /* One region switcher only: the sticky header owns regional navigation. */
 .site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] { display: none !important; }
@@ -112,6 +129,43 @@
   border-color: var(--news-accent) !important;
 }
 
+/* Calm editorial motion: small lift + image zoom for story/media cards, subtle movement for controls. */
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img),
+.site-root:not(:has(.admin-theme-shell)) main article[class*="rounded-xl"],
+.site-root:not(:has(.admin-theme-shell)) main a[class*="rounded-xl"][class*="border"] {
+  transition: transform .24s cubic-bezier(.2,.7,.2,1), box-shadow .24s ease, border-color .24s ease, background-color .24s ease;
+  will-change: transform;
+}
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover,
+.site-root:not(:has(.admin-theme-shell)) main article[class*="rounded-xl"]:hover,
+.site-root:not(:has(.admin-theme-shell)) main a[class*="rounded-xl"][class*="border"]:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(44,34,25,.10);
+  border-color: #c9bbae !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img) img,
+.site-root:not(:has(.admin-theme-shell)) main a[class*="overflow-hidden"] img {
+  transition: transform .38s cubic-bezier(.2,.7,.2,1), filter .3s ease, opacity .3s ease;
+  transform-origin: center;
+}
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover img,
+.site-root:not(:has(.admin-theme-shell)) main a[class*="overflow-hidden"]:hover img {
+  transform: scale(1.035);
+  filter: saturate(1) contrast(1.035);
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(a, button)[class*="rounded-full"],
+.site-root:not(:has(.admin-theme-shell)) main :is(a, button)[class*="rounded-lg"][class*="border"] {
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(a, button)[class*="rounded-full"]:hover,
+.site-root:not(:has(.admin-theme-shell)) main :is(a, button)[class*="rounded-lg"][class*="border"]:hover {
+  transform: translateY(-1px);
+}
+.site-root:not(:has(.admin-theme-shell)) main a[class*="grid"][class*="overflow-hidden"]:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 18px rgba(44,34,25,.12);
+}
+
 .site-root:not(:has(.admin-theme-shell)) :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--news-accent); outline-offset: 2px; }
 
 /* Admin stays strictly on its independent black/white system. */
@@ -123,6 +177,20 @@
 .site-root .admin-theme-shell :is(a, button, input, select, textarea, summary):focus-visible { outline-color: #0a0a0a; }
 [data-admin-theme="dark"] :is(a, button, input, select, textarea, summary):focus-visible { outline-color: #ffffff !important; }
 
+@media (prefers-reduced-motion: reduce) {
+  .site-root:not(:has(.admin-theme-shell)) main *,
+  [data-public-header] * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .site-root:not(:has(.admin-theme-shell)) main :is(a, button, article, img):hover,
+  [data-public-header] a:hover { transform: none !important; }
+}
+
 @media (max-width: 640px) {
   .site-root h1 { letter-spacing: -0.02em; }
+  .site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover,
+  .site-root:not(:has(.admin-theme-shell)) main article[class*="rounded-xl"]:hover { transform: none; }
 }
