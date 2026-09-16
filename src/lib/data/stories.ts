@@ -39,11 +39,20 @@ export async function getStories({ region, limit = 24, trending = false }: Story
   try {
     const selectedRegion = (region ?? await getActiveRegion()) as RegionSlug;
     const supabase = await createClient();
+
+    // Resolve the active edition first, then filter the article query by that
+    // relation before applying any result limit. This prevents a busy edition
+    // from crowding another edition out of the initial global fetch window.
+    const regionResult = await supabase.from("regions").select("id,slug").eq("slug", selectedRegion).maybeSingle();
+    if (regionResult.error) throw regionResult.error;
+    if (!regionResult.data) return [];
+
     const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
     const { data: articles, error: articleError } = await supabase
       .from("articles")
-      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until")
+      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until,article_regions!inner(region_id)")
       .eq("status", "published")
+      .eq("article_regions.region_id", regionResult.data.id)
       .not("image_url", "is", null)
       .neq("image_url", "")
       .order("published_at", { ascending: false, nullsFirst: false })
@@ -56,39 +65,25 @@ export async function getStories({ region, limit = 24, trending = false }: Story
     const sourceIds = [...new Set(articles.map((article) => article.source_id))];
     const clusterIds = [...new Set(articles.map((article) => article.story_cluster_id).filter(Boolean))] as string[];
 
-    const [regionsResult, categoriesResult, sourcesResult, clustersResult] = await Promise.all([
-      supabase.from("article_regions").select("article_id,region_id").in("article_id", articleIds),
+    const [categoriesResult, sourcesResult, clustersResult] = await Promise.all([
       supabase.from("article_categories").select("article_id,category_id").in("article_id", articleIds),
       supabase.from("sources").select("id,name").in("id", sourceIds),
       clusterIds.length ? supabase.from("story_clusters").select("id,article_count,trending_score").in("id", clusterIds) : Promise.resolve({ data: [], error: null }),
     ]);
 
-    const regionRows = regionsResult.error ? [] : (regionsResult.data ?? []);
     const categoryRows = categoriesResult.error ? [] : (categoriesResult.data ?? []);
     const sourceRows = sourcesResult.error ? [] : (sourcesResult.data ?? []);
     const clusterRows = clustersResult.error ? [] : (clustersResult.data ?? []);
 
-    const regionIds = [...new Set(regionRows.map((row) => row.region_id))];
     const categoryIds = [...new Set(categoryRows.map((row) => row.category_id))];
-    const [regionMetaResult, categoryMetaResult] = await Promise.all([
-      regionIds.length ? supabase.from("regions").select("id,slug").in("id", regionIds) : Promise.resolve({ data: [], error: null }),
-      categoryIds.length ? supabase.from("categories").select("id,name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
-    ]);
-
-    const regionMetaRows = regionMetaResult.error ? [] : (regionMetaResult.data ?? []);
+    const categoryMetaResult = categoryIds.length
+      ? await supabase.from("categories").select("id,name").in("id", categoryIds)
+      : { data: [], error: null };
     const categoryMetaRows = categoryMetaResult.error ? [] : (categoryMetaResult.data ?? []);
 
-    const regionSlugById = new Map(regionMetaRows.map((row) => [row.id, row.slug as RegionSlug]));
     const categoryNameById = new Map(categoryMetaRows.map((row) => [row.id, row.name]));
     const sourceNameById = new Map(sourceRows.map((row) => [row.id, row.name]));
     const clusterById = new Map(clusterRows.map((row) => [row.id, row]));
-
-    const regionsByArticle = new Map<string, RegionSlug[]>();
-    for (const row of regionRows) {
-      const slug = regionSlugById.get(row.region_id);
-      if (!slug) continue;
-      regionsByArticle.set(row.article_id, [...(regionsByArticle.get(row.article_id) ?? []), slug]);
-    }
 
     const categoryByArticle = new Map<string, string>();
     for (const row of categoryRows) {
@@ -96,7 +91,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       if (category && !categoryByArticle.has(row.article_id)) categoryByArticle.set(row.article_id, category);
     }
 
-    const mapped = articles.map((article) => {
+    const visible = articles.map((article) => {
       const cluster = article.story_cluster_id ? clusterById.get(article.story_cluster_id) : undefined;
       return {
         slug: article.slug,
@@ -104,7 +99,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         summary: article.ai_summary || article.description || "Open the story to see the latest coverage.",
         source: sourceNameById.get(article.source_id) || "Source",
         published: relativeTime(article.published_at || article.discovered_at),
-        regions: regionsByArticle.get(article.id) ?? [],
+        regions: [selectedRegion],
         category: categoryByArticle.get(article.id) || "News",
         sourceCount: Number(cluster?.article_count ?? 1),
         imageUrl: article.image_url,
@@ -113,9 +108,6 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         publishedMs: new Date(article.published_at || article.discovered_at || 0).getTime(),
       };
     });
-
-    // The selected edition is a hard public content boundary.
-    const visible = mapped.filter((story) => story.regions.includes(selectedRegion));
 
     if (trending) {
       visible.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
