@@ -1,0 +1,167 @@
+/* Urban Observer-inspired public skin.
+   Theme only: typography, colour, borders, shadows and hover feel.
+   Existing BridgeNews layout, content structure and regional behaviour stay unchanged. */
+
+:root {
+  --news-paper: #f3f2ee;
+  --news-paper-deep: #e9e7e1;
+  --news-card: #ffffff;
+  --news-ink: #111111;
+  --news-muted: #6f6f6a;
+  --news-line: #d8d7d1;
+  --news-line-soft: #e8e7e2;
+  --news-accent: #f04b31;
+  --news-accent-deep: #cf311d;
+  --news-accent-soft: #fff0ec;
+  --urban-black: #111111;
+  --urban-white: #ffffff;
+  --urban-wash: #f7f6f2;
+}
+
+/* Cleaner magazine typography similar to the reference, without moving layout. */
+.site-root:not(:has(.admin-theme-shell)) {
+  background: var(--news-paper) !important;
+  color: var(--news-ink);
+  font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.site-root:not(:has(.admin-theme-shell)) :is(h1, h2, h3, h4, h5, h6),
+.site-root:not(:has(.admin-theme-shell)) .font-serif {
+  font-family: "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.site-root:not(:has(.admin-theme-shell)) p,
+.site-root:not(:has(.admin-theme-shell)) li,
+.site-root:not(:has(.admin-theme-shell)) input,
+.site-root:not(:has(.admin-theme-shell)) button,
+.site-root:not(:has(.admin-theme-shell)) select,
+.site-root:not(:has(.admin-theme-shell)) textarea {
+  font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, sans-serif;
+}
+
+/* Header: crisp white/black magazine treatment. */
+[data-public-header] {
+  background: rgba(255,255,255,.97) !important;
+  border-color: #deddd8 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.05) !important;
+}
+[data-public-header] .news-wordmark {
+  font-family: "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  color: var(--urban-black) !important;
+}
+[data-public-header] .news-search {
+  background: #f5f4f0 !important;
+  border-color: #dddcd6 !important;
+  color: #161616 !important;
+  box-shadow: none !important;
+}
+[data-public-header] .news-search:focus {
+  border-color: #111 !important;
+  box-shadow: 0 0 0 2px rgba(17,17,17,.08) !important;
+}
+[data-public-header] .news-signin {
+  background: #111 !important;
+  border-color: #111 !important;
+  color: #fff !important;
+}
+[data-public-header] .news-signin:hover {
+  background: var(--news-accent) !important;
+  border-color: var(--news-accent) !important;
+}
+[data-public-header] .news-nav-link:hover,
+[data-public-header] .news-language-link:hover { color: var(--news-accent) !important; }
+
+/* Neutral white cards, firmer black type, slimmer editorial borders. */
+.site-root:not(:has(.admin-theme-shell)) main .bg-white,
+.site-root:not(:has(.admin-theme-shell)) main [class*="bg-[#fffdf8]"],
+.site-root:not(:has(.admin-theme-shell)) main [class*="bg-[#fffaf8]"] {
+  background-color: var(--urban-white) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main .bg-slate-50,
+.site-root:not(:has(.admin-theme-shell)) main .bg-gray-50 {
+  background-color: var(--urban-wash) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(.border-slate-100,.border-gray-100) { border-color: var(--news-line-soft) !important; }
+.site-root:not(:has(.admin-theme-shell)) main :is(.border-slate-200,.border-gray-200) { border-color: var(--news-line) !important; }
+
+/* Category labels and primary controls use the reference-like warm punch colour. */
+.site-root:not(:has(.admin-theme-shell)) main :is(.text-rose-700,.text-red-600,.text-red-700) { color: var(--news-accent) !important; }
+.site-root:not(:has(.admin-theme-shell)) main :is(.bg-rose-600,.bg-red-600) { background-color: var(--news-accent) !important; }
+.site-root:not(:has(.admin-theme-shell)) main a.bg-black,
+.site-root:not(:has(.admin-theme-shell)) main button.bg-black {
+  background: var(--urban-black) !important;
+  border-color: var(--urban-black) !important;
+  color: #fff !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a.bg-black:hover,
+.site-root:not(:has(.admin-theme-shell)) main button.bg-black:hover {
+  background: var(--news-accent) !important;
+  border-color: var(--news-accent) !important;
+}
+
+/* Keep the current geometry, but make surfaces feel flatter and more magazine-like. */
+.site-root:not(:has(.admin-theme-shell)) main :is(article, section, aside)[class*="border"] {
+  border-color: var(--news-line) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main :is(.rounded-xl,.rounded-2xl,.rounded-lg) {
+  box-shadow: 0 1px 0 rgba(0,0,0,.035);
+}
+
+/* Urban Observer-style sharp hover: small lift, image zoom, stronger black border. */
+.site-root:not(:has(.admin-theme-shell)) main article:has(img),
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img) {
+  transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s ease, border-color .22s ease;
+}
+.site-root:not(:has(.admin-theme-shell)) main article:has(img):hover,
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover {
+  transform: translateY(-3px);
+  border-color: #bdbbb4 !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.09);
+}
+.site-root:not(:has(.admin-theme-shell)) main article:has(img) img,
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img) img,
+.site-root:not(:has(.admin-theme-shell)) main a[class*="overflow-hidden"] img {
+  transition: transform .34s cubic-bezier(.2,.7,.2,1), filter .28s ease;
+}
+.site-root:not(:has(.admin-theme-shell)) main article:has(img):hover img,
+.site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover img,
+.site-root:not(:has(.admin-theme-shell)) main a[class*="overflow-hidden"]:hover img {
+  transform: scale(1.035);
+  filter: saturate(1.03) contrast(1.03);
+}
+
+/* Pills/buttons remain in the same places but use a monochrome-first treatment. */
+.site-root:not(:has(.admin-theme-shell)) main :is(a,button)[class*="rounded-full"][class*="border"]:hover,
+.site-root:not(:has(.admin-theme-shell)) main :is(a,button)[class*="rounded-lg"][class*="border"]:hover {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #fff !important;
+}
+
+/* Footer follows the demo's strong dark magazine finish. */
+[data-public-footer] {
+  background: #111 !important;
+  border-color: #111 !important;
+  color: #fff !important;
+}
+[data-public-footer] .news-footer-muted { color: #aaa !important; }
+[data-public-footer] .news-footer-link:hover { color: var(--news-accent) !important; }
+
+.site-root:not(:has(.admin-theme-shell)) :is(a,button,input,select,textarea,summary):focus-visible {
+  outline-color: var(--news-accent) !important;
+}
+
+@media (max-width: 640px) {
+  .site-root:not(:has(.admin-theme-shell)) :is(h1,h2,h3,h4,h5,h6),
+  .site-root:not(:has(.admin-theme-shell)) .font-serif { letter-spacing: -0.025em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-root:not(:has(.admin-theme-shell)) main article:has(img):hover,
+  .site-root:not(:has(.admin-theme-shell)) main a.group:has(img):hover { transform: none; }
+}
