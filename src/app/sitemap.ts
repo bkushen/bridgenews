@@ -5,13 +5,13 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://bridgenews-live-bk
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
-    "", "/sri-lanka", "/australia", "/international", "/brief", "/top-stories", "/latest", "/trending", "/popular", "/search", "/categories", "/topics", "/sources", "/videos", "/map", "/archive", "/official",
+    "", "/sri-lanka", "/australia", "/international", "/brief", "/top-stories", "/latest", "/trending", "/popular", "/search", "/categories", "/topics", "/sources", "/videos", "/whats-on", "/map", "/archive", "/official",
     "/region/sri-lanka", "/region/australia", "/region/international",
     "/about", "/contact", "/privacy", "/terms",
   ].map((path) => ({
     url: `${BASE_URL}${path}`,
-    changeFrequency: path === "" || ["/sri-lanka", "/australia", "/international", "/brief", "/top-stories", "/latest", "/popular"].includes(path) ? "hourly" : "daily",
-    priority: path === "" ? 1 : ["/sri-lanka", "/australia"].includes(path) ? 0.95 : path === "/international" || path === "/brief" ? 0.9 : path.startsWith("/region/") || ["/top-stories", "/latest", "/sources", "/topics"].includes(path) ? 0.8 : 0.6,
+    changeFrequency: path === "" || ["/sri-lanka", "/australia", "/international", "/brief", "/top-stories", "/latest", "/popular", "/whats-on"].includes(path) ? "hourly" : "daily",
+    priority: path === "" ? 1 : ["/sri-lanka", "/australia"].includes(path) ? 0.95 : path === "/international" || path === "/brief" ? 0.9 : path.startsWith("/region/") || ["/top-stories", "/latest", "/sources", "/topics", "/whats-on"].includes(path) ? 0.8 : 0.6,
   }));
 
   try {
