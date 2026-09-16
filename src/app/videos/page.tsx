@@ -1,4 +1,5 @@
 import { getLiveNewsVideos, getVerifiedVideoChannels } from "@/lib/data/videos";
+import { EDITIONS, getActiveRegion } from "@/lib/region-context";
 
 function relative(value: string | null) {
   if (!value) return "Recent";
@@ -12,11 +13,13 @@ function relative(value: string | null) {
 }
 
 export default async function VideosPage() {
-  const [videos, channels] = await Promise.all([getLiveNewsVideos(18), Promise.resolve(getVerifiedVideoChannels())]);
+  const region = await getActiveRegion();
+  const edition = EDITIONS[region];
+  const [videos, channels] = await Promise.all([getLiveNewsVideos(18, region), getVerifiedVideoChannels(region)]);
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10">
-      <div className="border-b border-gray-200 pb-6"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">Official publishers</p><h1 className="mt-2 text-4xl font-black tracking-tight md:text-5xl">Live News Videos</h1><p className="mt-3 max-w-3xl leading-7 text-gray-600">Latest items from verified official publisher YouTube feeds. BridgeNews shows the public thumbnail and title, then sends playback to YouTube.</p></div>
+      <div className="border-b border-gray-200 pb-6"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">{edition.flag} {edition.label} · Official publishers</p><h1 className="mt-2 text-4xl font-black tracking-tight md:text-5xl">{edition.label} News Videos</h1><p className="mt-3 max-w-3xl leading-7 text-gray-600">Latest items from verified official publisher YouTube feeds associated with the selected edition.</p></div>
 
       {videos.length ? (
         <section className="mt-8">
@@ -28,10 +31,10 @@ export default async function VideosPage() {
             </a>)}
           </div>
         </section>
-      ) : <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-gray-600">The live YouTube feeds did not respond on this refresh. The verified channel directory below remains available.</div>}
+      ) : <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-gray-600">No verified {edition.label} video feed responded on this refresh.</div>}
 
       <section className="mt-10">
-        <div className="mb-4"><p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Directory</p><h2 className="mt-1 text-2xl font-black">Verified channels</h2></div>
+        <div className="mb-4"><p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Directory</p><h2 className="mt-1 text-2xl font-black">Verified {edition.label} channels</h2></div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{channels.map((channel) => <a key={channel.channelUrl} href={channel.channelUrl} target="_blank" rel="noreferrer" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md"><p className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-600">Verified official channel</p><h3 className="mt-2 text-lg font-black">{channel.name}</h3><p className="mt-1 text-sm text-gray-500">{channel.language}</p><p className="mt-4 text-sm font-black">Open channel ↗</p></a>)}</div>
       </section>
     </main>
