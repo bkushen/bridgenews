@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { RegionSlug, Story } from "@/lib/mock-data";
+import { getActiveRegion } from "@/lib/region-context";
 
 type StoryQueryOptions = {
   region?: RegionSlug;
@@ -36,11 +37,25 @@ function editorialRank(article: {
 
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
+    const activeRegion = region ?? await getActiveRegion();
     const supabase = await createClient();
+    const regionResult = await supabase.from("regions").select("id").eq("slug", activeRegion).maybeSingle();
+    if (regionResult.error || !regionResult.data) return [];
+
+    const regionLinks = await supabase
+      .from("article_regions")
+      .select("article_id")
+      .eq("region_id", regionResult.data.id)
+      .limit(10000);
+    if (regionLinks.error) throw regionLinks.error;
+    const regionalArticleIds = [...new Set((regionLinks.data ?? []).map((row) => row.article_id))];
+    if (!regionalArticleIds.length) return [];
+
     const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
     const { data: articles, error: articleError } = await supabase
       .from("articles")
       .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until")
+      .in("id", regionalArticleIds)
       .eq("status", "published")
       .not("image_url", "is", null)
       .neq("image_url", "")
@@ -75,7 +90,6 @@ export async function getStories({ region, limit = 24, trending = false }: Story
 
     const regionMetaRows = regionMetaResult.error ? [] : (regionMetaResult.data ?? []);
     const categoryMetaRows = categoryMetaResult.error ? [] : (categoryMetaResult.data ?? []);
-
     const regionSlugById = new Map(regionMetaRows.map((row) => [row.id, row.slug as RegionSlug]));
     const categoryNameById = new Map(categoryMetaRows.map((row) => [row.id, row.name]));
     const sourceNameById = new Map(sourceRows.map((row) => [row.id, row.name]));
@@ -94,7 +108,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       if (category && !categoryByArticle.has(row.article_id)) categoryByArticle.set(row.article_id, category);
     }
 
-    const mapped = articles.map((article) => {
+    const visible = articles.map((article) => {
       const cluster = article.story_cluster_id ? clusterById.get(article.story_cluster_id) : undefined;
       return {
         slug: article.slug,
@@ -102,7 +116,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         summary: article.ai_summary || article.description || "Open the story to see the latest coverage.",
         source: sourceNameById.get(article.source_id) || "Source",
         published: relativeTime(article.published_at || article.discovered_at),
-        regions: regionsByArticle.get(article.id) ?? [],
+        regions: regionsByArticle.get(article.id) ?? [activeRegion],
         category: categoryByArticle.get(article.id) || "News",
         sourceCount: Number(cluster?.article_count ?? 1),
         imageUrl: article.image_url,
@@ -110,10 +124,7 @@ export async function getStories({ region, limit = 24, trending = false }: Story
         editorialRank: editorialRank(article),
         publishedMs: new Date(article.published_at || article.discovered_at || 0).getTime(),
       };
-    });
-
-    const regional = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
-    const visible = region && regional.length === 0 ? mapped : regional;
+    }).filter((story) => story.regions.includes(activeRegion));
 
     if (trending) {
       visible.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
