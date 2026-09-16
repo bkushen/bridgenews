@@ -9,6 +9,7 @@ import { WhatsOnExplorer } from "@/components/whats-on-explorer";
 import type { Story } from "@/lib/mock-data";
 
 type RegionKey = "sri-lanka" | "australia" | "international";
+type SriLanguage = "en" | "si" | "ta";
 type StoryWithImage = Story & { imageUrl?: string | null };
 type RegionConfig = { key: RegionKey; label: string; flag: string; city: string; timeZone: string; places: string[] };
 
@@ -21,6 +22,12 @@ const REGIONS: Record<RegionKey, RegionConfig> = {
 const quickLinks = [
   ["Google", "https://www.google.com", "G"], ["Gmail", "https://mail.google.com", "✉"], ["YouTube", "https://www.youtube.com", "▶"], ["Facebook", "https://www.facebook.com", "f"], ["WhatsApp", "https://www.whatsapp.com", "◉"], ["Wikipedia", "https://www.wikipedia.org", "W"], ["X.com", "https://x.com", "𝕏"], ["LinkedIn", "https://www.linkedin.com", "in"], ["Instagram", "https://www.instagram.com", "◎"], ["Reddit", "https://www.reddit.com", "●"],
 ] as const;
+
+const SRI_LANGUAGES: Array<{ code: SriLanguage; label: string; native: string }> = [
+  { code: "en", label: "English", native: "English" },
+  { code: "si", label: "Sinhala", native: "සිංහල" },
+  { code: "ta", label: "Tamil", native: "தமிழ்" },
+];
 
 function SectionTitle({ title, href, label = "See all" }: { title: string; href?: string; label?: string }) {
   return <div className="mb-4 flex items-center justify-between gap-3"><h2 className="text-[18px] font-extrabold tracking-tight text-[#101828] sm:text-[21px]">{title}</h2>{href ? <Link href={href} className="text-[10px] font-bold text-[#3157d5] hover:underline">{label} →</Link> : null}</div>;
@@ -89,9 +96,10 @@ function TodayPulse({ stories, sourceCount, topics }: { stories: Story[]; source
   return <section className="rounded-xl border border-[#e4e7ec] bg-white p-4"><SectionTitle title="Today's Pulse"/><div className="grid grid-cols-2 gap-2"><div className="rounded-lg border border-[#eef2f6] p-3"><p className="text-2xl font-extrabold text-[#101828]">{stories.length}</p><p className="text-[7px] font-bold uppercase text-[#98a2b3]">Stories today</p></div><div className="rounded-lg border border-[#eef2f6] p-3"><p className="text-2xl font-extrabold text-[#101828]">{sourceCount}</p><p className="text-[7px] font-bold uppercase text-[#98a2b3]">Outlets</p></div><div className="rounded-lg border border-[#eef2f6] p-3"><p className="text-2xl font-extrabold text-[#101828]">{topics.length}</p><p className="text-[7px] font-bold uppercase text-[#98a2b3]">Topics</p></div><div className="rounded-lg border border-[#eef2f6] p-3"><p className="text-2xl font-extrabold text-[#101828]">{topics.filter(t=>t.sourceCount>1).length}</p><p className="text-[7px] font-bold uppercase text-[#98a2b3]">Multi-source</p></div></div></section>;
 }
 
-export async function RegionalHomepageV2({ region }: { region: RegionKey }) {
+export async function RegionalHomepageV2({ region, language }: { region: RegionKey; language?: SriLanguage }) {
   const config = REGIONS[region];
-  const [stories, weather, whatsOn] = await Promise.all([getStories({ region, limit: 140 }), getHomepageWeather(), getWhatsOnItems(region, 28)]);
+  const activeLanguage = region === "sri-lanka" ? (language ?? "en") : undefined;
+  const [stories, weather, whatsOn] = await Promise.all([getStories({ region, limit: 140, language: activeLanguage }), getHomepageWeather(), getWhatsOnItems(region, 28)]);
   const topics = groupStoriesIntoTopics(stories, 100);
   const trending = rankTrendingTopics(topics).slice(0, 14);
   const sourceCount = new Set(stories.map((s) => s.source)).size;
@@ -104,11 +112,13 @@ export async function RegionalHomepageV2({ region }: { region: RegionKey }) {
   const keywordText = Array.from(new Set(topics.map(t=>t.category).filter(Boolean))).slice(0,24).join(" · ");
 
   return <main className="mx-auto max-w-[1180px] px-3 pb-14 pt-4 sm:px-5"><RegionPreference region={region}/>
-    <section className="rounded-full border border-[#e4e7ec] bg-white px-4 py-2.5 text-[9px] font-semibold text-[#667085]"><div className="flex items-center gap-2 overflow-x-auto"><span className="shrink-0 font-bold text-[#101828]">{localDate}</span><span>·</span><span className="shrink-0">{config.flag} {formatCityTime(config.timeZone)} in {config.label}</span><span>·</span><span className="shrink-0">{localWeather.emoji} {localWeather.temperature != null ? `${Math.round(localWeather.temperature)}°` : "—"} {config.city}</span><span>·</span><Link href="/latest" className="shrink-0 font-bold text-[#3157d5]">Latest regional updates →</Link></div></section>
+    {region === "sri-lanka" ? <section className="mb-3 rounded-xl border border-[#e4e7ec] bg-white p-2"><div className="flex gap-2 overflow-x-auto">{SRI_LANGUAGES.map((item) => { const active = item.code === activeLanguage; return <Link key={item.code} href={`/sri-lanka?language=${item.code}`} className={`min-w-[118px] flex-1 rounded-lg px-4 py-3 text-center transition ${active ? "bg-[#3157d5] text-white shadow-sm" : "bg-[#f8fafc] text-[#475467] hover:bg-[#eef3ff] hover:text-[#3157d5]"}`}><span className="block text-[12px] font-extrabold">{item.native}</span><span className={`mt-0.5 block text-[8px] font-semibold ${active ? "text-white/80" : "text-[#98a2b3]"}`}>{item.label}</span></Link>; })}</div></section> : null}
+
+    <section className="rounded-full border border-[#e4e7ec] bg-white px-4 py-2.5 text-[9px] font-semibold text-[#667085]"><div className="flex items-center gap-2 overflow-x-auto"><span className="shrink-0 font-bold text-[#101828]">{localDate}</span><span>·</span><span className="shrink-0">{config.flag} {formatCityTime(config.timeZone)} in {config.label}</span>{activeLanguage ? <><span>·</span><span className="shrink-0 font-bold text-[#3157d5]">{SRI_LANGUAGES.find((item) => item.code === activeLanguage)?.native} news</span></> : null}<span>·</span><span className="shrink-0">{localWeather.emoji} {localWeather.temperature != null ? `${Math.round(localWeather.temperature)}°` : "—"} {config.city}</span><span>·</span><Link href="/latest" className="shrink-0 font-bold text-[#3157d5]">Latest regional updates →</Link></div></section>
 
     <section className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">{quickLinks.map(([label,href,icon])=><a key={label} href={href} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-full border border-[#e4e7ec] bg-white px-3 py-2 text-[10px] font-semibold text-[#475467] hover:border-[#c8d4ff] hover:bg-[#f8faff]"><span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#eef3ff] px-1 text-[9px] font-black text-[#3157d5]">{icon}</span>{label}</a>)}</section>
 
-    <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_330px]"><RegionalPulseBoard regionLabel={config.label} flag={config.flag} greeting={`${greeting(config.timeZone)} ${region === "international" ? "🌍" : "☀️"}`} topics={pulseTopics} storyCount={stories.length} sourceCount={sourceCount} fallbackChips={config.places}/><div id="whats-on"><WhatsOnExplorer items={whatsOn} regionLabel={config.label} timeZone={config.timeZone} compact/></div></section>
+    <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_330px]"><RegionalPulseBoard regionLabel={activeLanguage ? `${config.label} · ${SRI_LANGUAGES.find((item) => item.code === activeLanguage)?.native}` : config.label} flag={config.flag} greeting={`${greeting(config.timeZone)} ${region === "international" ? "🌍" : "☀️"}`} topics={pulseTopics} storyCount={stories.length} sourceCount={sourceCount} fallbackChips={config.places}/><div id="whats-on"><WhatsOnExplorer items={whatsOn} regionLabel={config.label} timeZone={config.timeZone} compact/></div></section>
 
     <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_265px]"><div><SectionTitle title="In the News"/><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.1fr_.8fr_.8fr]">{inNews[0] ? <InNewsCard story={inNews[0]} large/> : null}<div className="grid gap-3">{inNews.slice(1,3).map(s=><InNewsCard key={s.slug} story={s}/>)}</div><div className="grid gap-3">{inNews.slice(3,5).map(s=><InNewsCard key={s.slug} story={s}/>)}</div></div>
       <section className="mt-6"><SectionTitle title="Featured Stories" href="/top-stories"/><div className="grid gap-3 sm:grid-cols-2">{featured.map(t=><FeaturedCard key={t.key} topic={t}/>)}</div></section>
