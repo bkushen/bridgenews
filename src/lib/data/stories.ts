@@ -6,6 +6,7 @@ type StoryQueryOptions = {
   region?: RegionSlug;
   limit?: number;
   trending?: boolean;
+  language?: "en" | "si" | "ta";
 };
 
 function relativeTime(value: string | null) {
@@ -35,22 +36,19 @@ function editorialRank(article: {
     + Number(article.editorial_priority ?? 0);
 }
 
-export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
+export async function getStories({ region, limit = 24, trending = false, language }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
     const selectedRegion = (region ?? await getActiveRegion()) as RegionSlug;
     const supabase = await createClient();
 
-    // Resolve the active edition first, then filter the article query by that
-    // relation before applying any result limit. This prevents a busy edition
-    // from crowding another edition out of the initial global fetch window.
     const regionResult = await supabase.from("regions").select("id,slug").eq("slug", selectedRegion).maybeSingle();
     if (regionResult.error) throw regionResult.error;
     if (!regionResult.data) return [];
 
     const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
-    const { data: articles, error: articleError } = await supabase
+    let articleQuery = supabase
       .from("articles")
-      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until,article_regions!inner(region_id)")
+      .select("id,source_id,story_cluster_id,slug,title,ai_summary,description,image_url,language_code,published_at,discovered_at,is_main_headline,is_breaking,is_featured,editorial_priority,pinned_until,article_regions!inner(region_id)")
       .eq("status", "published")
       .eq("article_regions.region_id", regionResult.data.id)
       .not("image_url", "is", null)
@@ -58,6 +56,9 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchLimit);
 
+    if (language) articleQuery = articleQuery.eq("language_code", language);
+
+    const { data: articles, error: articleError } = await articleQuery;
     if (articleError) throw articleError;
     if (!articles?.length) return [];
 
