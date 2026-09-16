@@ -8,7 +8,7 @@ const primaryNav = [
   ["Top Stories", "/top-stories"],
   ["News", "/latest"],
   ["Videos", "/videos"],
-  ["What's On", "#whats-on"],
+  ["What's On", "/whats-on"],
   ["Map", "/map"],
   ["Topics", "/topics"],
   ["Sources", "/sources"],
@@ -66,10 +66,7 @@ export async function SiteHeader() {
 
       <div className="mx-auto flex max-w-[1480px] items-center gap-2 overflow-x-auto px-4 pb-3 lg:px-6">
         <nav className="flex shrink-0 items-center gap-2">
-          {primaryNav.map(([label, href], index) => {
-            const resolvedHref = href.startsWith("#") ? `${editionHome}${href}` : href;
-            return <Link key={label} href={resolvedHref} className={`news-nav-link shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${index === 0 ? "bg-[#201d1a] text-white hover:bg-[#a5232f]" : "bg-[#f0eadf] text-[#554e47] hover:-translate-y-0.5 hover:bg-[#e8ded1] hover:text-[#7f1822]"}`}>{label}</Link>;
-          })}
+          {primaryNav.map(([label, href], index) => <Link key={label} href={href === "/" ? editionHome : href} className={`news-nav-link shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${index === 0 ? "bg-[#201d1a] text-white hover:bg-[#a5232f]" : "bg-[#f0eadf] text-[#554e47] hover:-translate-y-0.5 hover:bg-[#e8ded1] hover:text-[#7f1822]"}`}>{label}</Link>)}
         </nav>
       </div>
     </div>
