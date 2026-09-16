@@ -1,15 +1,20 @@
+import { redirect } from "next/navigation";
 import { getOfficialLiveItems } from "@/lib/data/official";
+import { getActiveRegion } from "@/lib/region-context";
 
 export default async function OfficialPage() {
+  const region = await getActiveRegion();
+  if (region !== "sri-lanka") redirect(region === "australia" ? "/australia" : "/international");
+
   const items = await getOfficialLiveItems();
   const liveCount = items.filter((item) => item.status === "live").length;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10">
       <div className="border-b border-gray-200 pb-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">Primary information</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">🇱🇰 Sri Lanka · Primary information</p>
         <h1 className="mt-2 text-4xl font-black tracking-tight md:text-5xl">Official Sri Lanka Alerts & Notices</h1>
-        <p className="mt-3 max-w-3xl leading-7 text-gray-600">Live first-party status cards from government and public-service websites. BridgeNews only surfaces short public headings here and links straight back to the authority.</p>
+        <p className="mt-3 max-w-3xl leading-7 text-gray-600">Live first-party status cards from Sri Lankan government and public-service websites. This page is available only inside the Sri Lanka edition.</p>
       </div>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-3">
