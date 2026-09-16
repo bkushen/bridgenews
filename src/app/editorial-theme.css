@@ -40,10 +40,10 @@
 [data-public-header] .news-wordmark { font-family: Georgia, "Times New Roman", Times, serif; letter-spacing: -0.035em; }
 [data-public-header] .news-search { background: #fbf7f0 !important; border-color: var(--news-line) !important; }
 [data-public-header] .news-search:focus { border-color: var(--news-accent) !important; box-shadow: 0 0 0 3px rgba(165,35,47,.09); }
-[data-public-header] .news-signin { background: var(--news-ink) !important; color: #fffdf8 !important; }
-[data-public-header] .news-signin:hover { background: var(--news-accent-deep) !important; }
+[data-public-header] .news-signin { background: var(--news-ink) !important; border-color: var(--news-ink) !important; color: #fffdf8 !important; }
+[data-public-header] .news-signin:hover { background: var(--news-accent-deep) !important; border-color: var(--news-accent-deep) !important; }
 [data-public-header] .news-nav-link:hover,
-[data-public-header] .news-language-link:hover { color: var(--news-accent) !important; }
+[data-public-header] .news-language-link:hover { color: var(--news-accent-deep) !important; }
 
 [data-public-footer] { background: #201d1a !important; border-color: #201d1a !important; color: #f5efe6; }
 [data-public-footer] .news-footer-muted { color: #c9c0b5 !important; }
@@ -77,9 +77,41 @@
 .site-root:not(:has(.admin-theme-shell)) main .rounded-xl,
 .site-root:not(:has(.admin-theme-shell)) main .rounded-lg { box-shadow: 0 1px 0 rgba(53,42,31,.025); }
 .site-root:not(:has(.admin-theme-shell)) main img { filter: saturate(.92) contrast(1.02); }
-.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"] { background: var(--news-accent) !important; color: #fffaf5 !important; }
-.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"]:hover,
-.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] a[aria-current="page"]:focus-visible { background: var(--news-accent-deep) !important; }
+
+/* One region switcher only: the sticky header owns regional navigation. */
+.site-root:not(:has(.admin-theme-shell)) main nav[aria-label="Choose news region"] { display: none !important; }
+
+/* Public interactive hierarchy: burgundy primary, ivory/tan secondary, dark sign-in only. */
+.site-root:not(:has(.admin-theme-shell)) main a.bg-black,
+.site-root:not(:has(.admin-theme-shell)) main button.bg-black {
+  background-color: var(--news-accent) !important;
+  border-color: var(--news-accent) !important;
+  color: #fffaf5 !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a.bg-black:hover,
+.site-root:not(:has(.admin-theme-shell)) main button.bg-black:hover {
+  background-color: var(--news-accent-deep) !important;
+  border-color: var(--news-accent-deep) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a[class*="rounded-full"][class*="border"]:not([class*="bg-slate-950"]):hover,
+.site-root:not(:has(.admin-theme-shell)) main button[class*="rounded-full"][class*="border"]:hover {
+  border-color: var(--news-accent) !important;
+  background-color: var(--news-accent-soft) !important;
+  color: var(--news-accent-deep) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a[class*="rounded-lg"][class*="border"][class*="text-center"]:hover {
+  border-color: var(--news-accent) !important;
+  background-color: var(--news-accent-soft) !important;
+  color: var(--news-accent-deep) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a[class*="text-rose-700"]:hover {
+  color: var(--news-accent-deep) !important;
+}
+.site-root:not(:has(.admin-theme-shell)) main a[class*="border-slate-200"]:focus-visible,
+.site-root:not(:has(.admin-theme-shell)) main button[class*="border-slate-200"]:focus-visible {
+  border-color: var(--news-accent) !important;
+}
+
 .site-root:not(:has(.admin-theme-shell)) :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--news-accent); outline-offset: 2px; }
 
 /* Admin stays strictly on its independent black/white system. */
