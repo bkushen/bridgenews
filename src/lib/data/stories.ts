@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { RegionSlug, Story } from "@/lib/mock-data";
+import { getActiveRegion } from "@/lib/region-context";
 
 type StoryQueryOptions = {
   region?: RegionSlug;
@@ -36,6 +37,7 @@ function editorialRank(article: {
 
 export async function getStories({ region, limit = 24, trending = false }: StoryQueryOptions = {}): Promise<Story[]> {
   try {
+    const selectedRegion = (region ?? await getActiveRegion()) as RegionSlug;
     const supabase = await createClient();
     const fetchLimit = Math.min(Math.max(limit * 12, 240), 1500);
     const { data: articles, error: articleError } = await supabase
@@ -112,9 +114,8 @@ export async function getStories({ region, limit = 24, trending = false }: Story
       };
     });
 
-    // A selected edition is a hard content boundary. Never fall back to another
-    // region when the selected edition has no matching stories.
-    const visible = region ? mapped.filter((story) => story.regions.includes(region)) : mapped;
+    // The selected edition is a hard public content boundary.
+    const visible = mapped.filter((story) => story.regions.includes(selectedRegion));
 
     if (trending) {
       visible.sort((a, b) => b.editorialRank - a.editorialRank || b.trendingScore - a.trendingScore || b.publishedMs - a.publishedMs);
