@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RegionalHomepage } from "@/components/regional-homepage";
+import { RegionalHomepageV2 } from "@/components/regional-homepage-v2";
 
 export const metadata: Metadata = {
   title: "Australia News | BridgeNews",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function AustraliaPage() {
-  return <RegionalHomepage region="australia" />;
+  return <RegionalHomepageV2 region="australia" />;
 }
