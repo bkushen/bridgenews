@@ -32,9 +32,10 @@ export async function getCategoryStories(slug: string, limit = 40, region?: Edit
     const supabase = await createClient();
     const category = await supabase.from("categories").select("id,name").eq("slug", slug).maybeSingle();
     if (category.error || !category.data) return [];
+    const categoryName = category.data.name;
 
     const regionalStories = await getStories({ region: selectedRegion, limit: 1500 });
-    return regionalStories.filter((story) => story.category === category.data.name).slice(0, limit) as (Story & { imageUrl?: string | null })[];
+    return regionalStories.filter((story) => story.category === categoryName).slice(0, limit) as (Story & { imageUrl?: string | null })[];
   } catch (error) {
     console.error("BridgeNews category story query failed.", error);
     return [];
