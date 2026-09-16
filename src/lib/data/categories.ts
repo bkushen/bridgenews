@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Story } from "@/lib/mock-data";
+import { getActiveRegion, type EditionRegion } from "@/lib/region-context";
 
 export type CategoryItem = { name: string; slug: string; articleCount: number };
 
@@ -14,12 +15,28 @@ function relativeTime(value: string | null) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export async function getCategories(): Promise<CategoryItem[]> {
+async function regionalPublishedIds(region: EditionRegion) {
+  const supabase = await createClient();
+  const regionRow = await supabase.from("regions").select("id").eq("slug", region).maybeSingle();
+  if (regionRow.error || !regionRow.data) return [];
+  const links = await supabase.from("article_regions").select("article_id").eq("region_id", regionRow.data.id).limit(10000);
+  if (links.error) throw links.error;
+  const ids = [...new Set((links.data ?? []).map((row) => row.article_id))];
+  if (!ids.length) return [];
+  const published = await supabase.from("articles").select("id").in("id", ids).eq("status", "published").not("image_url", "is", null).neq("image_url", "").limit(10000);
+  if (published.error) throw published.error;
+  return (published.data ?? []).map((row) => row.id);
+}
+
+export async function getCategories(region?: EditionRegion): Promise<CategoryItem[]> {
   try {
+    const activeRegion = region ?? await getActiveRegion();
+    const articleIds = await regionalPublishedIds(activeRegion);
+    if (!articleIds.length) return [];
     const supabase = await createClient();
     const [categoriesResult, linksResult] = await Promise.all([
       supabase.from("categories").select("id,name,slug").order("name"),
-      supabase.from("article_categories").select("category_id,article_id"),
+      supabase.from("article_categories").select("category_id,article_id").in("article_id", articleIds),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (linksResult.error) throw linksResult.error;
@@ -32,18 +49,21 @@ export async function getCategories(): Promise<CategoryItem[]> {
   }
 }
 
-export async function getCategoryStories(slug: string, limit = 40): Promise<(Story & { imageUrl?: string | null })[]> {
+export async function getCategoryStories(slug: string, limit = 40, region?: EditionRegion): Promise<(Story & { imageUrl?: string | null })[]> {
   try {
+    const activeRegion = region ?? await getActiveRegion();
+    const regionalIds = new Set(await regionalPublishedIds(activeRegion));
+    if (!regionalIds.size) return [];
     const supabase = await createClient();
     const category = await supabase.from("categories").select("id,name").eq("slug", slug).maybeSingle();
     if (category.error || !category.data) return [];
     const categoryId = category.data.id;
     const categoryName = category.data.name;
-    const links = await supabase.from("article_categories").select("article_id").eq("category_id", categoryId).limit(limit * 3);
+    const links = await supabase.from("article_categories").select("article_id").eq("category_id", categoryId).limit(limit * 20);
     if (links.error) throw links.error;
-    const ids = (links.data ?? []).map((row) => row.article_id);
+    const ids = (links.data ?? []).map((row) => row.article_id).filter((id) => regionalIds.has(id));
     if (!ids.length) return [];
-    const articles = await supabase.from("articles").select("id,source_id,slug,title,description,ai_summary,image_url,published_at,discovered_at").in("id", ids).eq("status", "published").order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
+    const articles = await supabase.from("articles").select("id,source_id,slug,title,description,ai_summary,image_url,published_at,discovered_at").in("id", ids).eq("status", "published").not("image_url", "is", null).neq("image_url", "").order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
     if (articles.error) throw articles.error;
     const sourceIds = [...new Set((articles.data ?? []).map((article) => article.source_id))];
     const sources = sourceIds.length ? await supabase.from("sources").select("id,name").in("id", sourceIds) : { data: [], error: null };
@@ -55,7 +75,7 @@ export async function getCategoryStories(slug: string, limit = 40): Promise<(Sto
       summary: article.ai_summary || article.description || "Open the story to read the latest coverage.",
       source: sourceNames.get(article.source_id) || "Source",
       published: relativeTime(article.published_at || article.discovered_at),
-      regions: [],
+      regions: [activeRegion],
       category: categoryName,
       sourceCount: 1,
       imageUrl: article.image_url,
