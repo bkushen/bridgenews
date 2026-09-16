@@ -1,11 +1,17 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { StoryCard } from "@/components/story-card";
 import { getStories } from "@/lib/data/stories";
+import { getActiveRegion } from "@/lib/region-context";
 import { regionMeta, type RegionSlug } from "@/lib/mock-data";
+
+const editionHome = (region: RegionSlug) => region === "sri-lanka" ? "/sri-lanka" : region === "australia" ? "/australia" : "/international";
 
 export default async function RegionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!(slug in regionMeta)) notFound();
+
+  const activeRegion = await getActiveRegion();
+  if (slug !== activeRegion) redirect(editionHome(activeRegion));
 
   const regionSlug = slug as RegionSlug;
   const region = regionMeta[regionSlug];
