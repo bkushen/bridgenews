@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSiteControl } from "@/lib/data/site-control";
 import { getSiteMenu } from "@/lib/data/site-menu";
+import { RegionNav } from "@/components/region-nav";
 
 export async function SiteHeader() {
   const [control, menu] = await Promise.all([getSiteControl(), getSiteMenu("header")]);
@@ -13,6 +14,6 @@ export async function SiteHeader() {
       <Link href="/brief" className="hidden rounded-full bg-[#a5232f] px-4 py-2 text-xs font-black text-white transition hover:bg-[#8d1d28] sm:inline-flex">Daily Brief</Link>
       <Link href="/following" className="hidden rounded-full border border-[#d8d0c4] bg-[#fffdf8] px-4 py-2 text-xs font-bold text-[#5f5851] transition hover:border-[#a5232f] hover:text-[#a5232f] lg:inline-flex">Following</Link><Link href="/login" className="news-signin rounded-full px-3.5 py-2 text-xs font-bold transition sm:px-4">Sign in</Link>
     </div>
-    <div className="border-t border-[#ebe4da]"><div className="mx-auto flex max-w-[1180px] items-center overflow-x-auto px-4 sm:px-5"><nav className="flex shrink-0 items-center gap-5 py-2.5 text-xs font-bold text-[#6f675f]"><Link href="/brief" className="news-nav-link shrink-0 whitespace-nowrap font-black text-[#a5232f] sm:hidden">Daily Brief</Link>{menu.map((item:any)=><Link key={item.id} href={item.href} className="news-nav-link shrink-0 whitespace-nowrap transition">{item.label}</Link>)}</nav><div className="ml-5 flex shrink-0 items-center gap-1 border-l border-[#d8d0c4] pl-5 text-[10px] font-black"><Link href="/top-stories?language=en" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">EN</Link><Link href="/top-stories?language=si" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">සිං</Link><Link href="/top-stories?language=ta" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">தமிழ்</Link></div></div></div>
+    <div className="border-t border-[#ebe4da]"><div className="mx-auto flex max-w-[1180px] items-center overflow-x-auto px-4 sm:px-5"><RegionNav/><nav className="ml-4 flex shrink-0 items-center gap-5 py-2.5 text-xs font-bold text-[#6f675f]"><Link href="/brief" className="news-nav-link shrink-0 whitespace-nowrap font-black text-[#a5232f] sm:hidden">Daily Brief</Link>{menu.map((item:any)=><Link key={item.id} href={item.href} className="news-nav-link shrink-0 whitespace-nowrap transition">{item.label}</Link>)}</nav><div className="ml-5 flex shrink-0 items-center gap-1 border-l border-[#d8d0c4] pl-5 text-[10px] font-black"><Link href="/top-stories?language=en" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">EN</Link><Link href="/top-stories?language=si" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">සිං</Link><Link href="/top-stories?language=ta" className="news-language-link rounded-full bg-[#f3ece2] px-2.5 py-1.5 transition">தமிழ்</Link></div></div></div>
   </header>;
 }
